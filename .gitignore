@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+nodejs-dba-app/node_modules/
+nodejs-dba-app/logs/
+nodejs-dba-app/.env
+nodejs-dba-app/package-lock.json
+
+# Logs
+*.log

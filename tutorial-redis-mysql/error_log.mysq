@@ -1,0 +1,16 @@
+/home tail -f /opt/homebrew/var/mysql/error.log 
+2026-05-05T06:44:32.187696Z 0 [System] [MY-015590] [Server] MySQL Server has access to 10 logical CPUs.
+2026-05-05T06:44:32.187706Z 0 [System] [MY-015590] [Server] MySQL Server has access to 17179869184 bytes of physical memory.
+2026-05-05T06:44:32.192031Z 0 [Warning] [MY-010159] [Server] Setting lower_case_table_names=2 because file system for /opt/homebrew/var/mysql/ is case insensitive
+2026-05-05T06:44:32.194307Z 0 [Warning] [MY-010122] [Server] One can only use the --user switch if running as root
+2026-05-05T06:44:32.201276Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-05-05T06:44:32.288206Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2026-05-05T06:44:32.428548Z 0 [Warning] [MY-010068] [Server] CA certificate ca.pem is self signed.
+2026-05-05T06:44:32.428589Z 0 [System] [MY-013602] [Server] Channel mysql_main configured to support TLS. Encrypted connections are now supported for this channel.
+2026-05-05T06:44:32.443444Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Bind-address: '::' port: 33060, socket: /tmp/mysqlx.sock
+2026-05-05T06:44:32.443562Z 0 [System] [MY-010931] [Server] /opt/homebrew/opt/mysql/bin/mysqld: ready for connections. Version: '9.6.0'  socket: '/tmp/mysql.sock'  port: 3306  Homebrew.
+
+
+
+
+
