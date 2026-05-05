@@ -10,7 +10,7 @@ const DocumentasiDB = sequelize.define(
       primaryKey: true,
     },
     db_type: {
-      type: DataTypes.ENUM('mysql', 'redis', 'postgresql', 'mongodb', 'other'),
+      type: DataTypes.ENUM('mysql', 'redis', 'postgresql', 'mongodb', 'oracle', 'db2', 'edb', 'other'),
       allowNull: false,
       comment: 'Type of database',
     },

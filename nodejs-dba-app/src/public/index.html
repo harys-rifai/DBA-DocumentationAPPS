@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBA Documentation — Aurora Cybersec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar" style="display:none">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">DBA<span class="accent">Docs</span></span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">DASHBOARD</div>
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">◈</span> Overview
+      </a>
+      <a href="#" class="nav-item" data-page="dokumentasi">
+        <span class="nav-icon">◉</span> Dokumentasi DB
+      </a>
+      <a href="#" class="nav-item" data-page="users">
+        <span class="nav-icon">◎</span> Users
+      </a>
+      <a href="#" class="nav-item" data-page="logs">
+        <span class="nav-icon">◌</span> Activity Logs
+      </a>
+
+      <div class="nav-section-label" style="margin-top:1.5rem">SYSTEM</div>
+      <a href="#" class="nav-item" data-page="monitoring">
+        <span class="nav-icon">◈</span> Monitoring
+      </a>
+      <a href="#" class="nav-item" id="logoutBtn">
+        <span class="nav-icon">⊗</span> Logout
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-dot online"></div>
+      <span id="sidebarUser">—</span>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ───────────────────────────────────────────── -->
+  <main class="main-content" id="mainContent" style="margin-left:0">
+
+    <!-- TOP BAR -->
+    <header class="topbar" id="topbar" style="display:none">
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <div class="topbar-title" id="pageTitle">Overview</div>
+      <div class="topbar-right">
+        <div class="health-badge" id="healthBadge">
+          <span class="pulse"></span> SYSTEM ONLINE
+        </div>
+        <div class="user-chip" id="userChip">
+          <span class="user-avatar">?</span>
+          <span id="topbarUser">Guest</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <div class="page-wrapper" id="pageWrapper">
+
+      <!-- ══ LOGIN PAGE ══ -->
+      <section class="page active" id="page-login">
+        <div class="login-container">
+          <div class="login-card">
+            <div class="login-logo">
+              <span class="logo-icon big">⬡</span>
+              <h1>DBA<span class="accent">Docs</span></h1>
+              <p class="login-sub">Aurora Cybersec Dashboard</p>
+            </div>
+            <form id="loginForm">
+              <div class="form-group">
+                <label>USERNAME</label>
+                <input type="text" id="loginUsername" placeholder="dba_user" autocomplete="username" />
+              </div>
+              <div class="form-group">
+                <label>PASSWORD</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+              </div>
+              <div class="form-error" id="loginError"></div>
+              <button type="submit" class="btn-primary full-width" id="loginBtn">
+                <span>AUTHENTICATE</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ DASHBOARD PAGE ══ -->
+      <section class="page" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card cyan">
+            <div class="stat-icon">◈</div>
+            <div class="stat-info">
+              <div class="stat-value" id="statUsers">—</div>
+              <div class="stat-label">Total Users</div>
+            </div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-icon">◉</div>
+            <div class="stat-info">
+              <div class="stat-value" id="statDocs">—</div>
+              <div class="stat-label">Dokumentasi</div>
+            </div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">◎</div>
+            <div class="stat-info">
+              <div class="stat-value" id="statLogs">—</div>
+              <div class="stat-label">Activity Logs</div>
+            </div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-icon">◌</div>
+            <div class="stat-info">
+              <div class="stat-value" id="statRedis">—</div>
+              <div class="stat-label">Redis Status</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">⬡ Recent Activity</span>
+            </div>
+            <div class="panel-body" id="recentActivity">
+              <div class="loading-dots"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">◈ System Health</span>
+            </div>
+            <div class="panel-body" id="systemHealth">
+              <div class="loading-dots"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:1.5rem">
+          <div class="panel-header">
+            <span class="panel-title">◉ Latest Dokumentasi</span>
+            <button class="btn-sm" onclick="navigate('dokumentasi')">View All →</button>
+          </div>
+          <div class="panel-body" id="latestDocs">
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ DOKUMENTASI PAGE ══ -->
+      <section class="page" id="page-dokumentasi">
+
+        <!-- Toolbar -->
+        <div class="page-actions">
+          <div class="search-box">
+            <span>⌕</span>
+            <input type="text" id="docsSearch" placeholder="Search title or summary..." />
+          </div>
+          <div class="filter-group">
+            <select id="docsFilter">
+              <option value="">All Types</option>
+              <option value="mysql">MySQL</option>
+              <option value="redis">Redis</option>
+              <option value="postgresql">PostgreSQL</option>
+              <option value="mongodb">MongoDB</option>
+              <option value="oracle">Oracle</option>
+              <option value="db2">IBM DB2</option>
+              <option value="edb">EDB (EnterpriseDB)</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <select id="docsPerPage">
+              <option value="10">10 / page</option>
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="btnNewDoc">+ New Doc</button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+          <table class="data-table" id="docsTable">
+            <thead>
+              <tr>
+                <th class="th-sort" data-col="id"        data-order="asc">#<span class="sort-icon">⇅</span></th>
+                <th class="th-sort" data-col="db_type"   data-order="asc">Type<span class="sort-icon">⇅</span></th>
+                <th class="th-sort" data-col="title"     data-order="asc">Title<span class="sort-icon">⇅</span></th>
+                <th>Summary</th>
+                <th>Tags</th>
+                <th class="th-sort" data-col="rank"      data-order="asc">Rank<span class="sort-icon">⇅</span></th>
+                <th class="th-sort" data-col="createdAt" data-order="asc">Created<span class="sort-icon">⇅</span></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="docsBody">
+              <tr><td colspan="8" class="loading-cell">
+                <div class="loading-dots"><span></span><span></span><span></span></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination + info -->
+        <div class="table-footer">
+          <div class="table-info" id="docsInfo">—</div>
+          <div class="pagination" id="docsPagination"></div>
+        </div>
+
+      </section>
+
+      <!-- ══ USERS PAGE ══ -->
+      <section class="page" id="page-users">
+        <div class="page-actions">
+          <div class="search-box">
+            <span>⌕</span>
+            <input type="text" id="usersSearch" placeholder="Search users..." oninput="filterUsers()" />
+          </div>
+          <button class="btn-primary" onclick="openUserModal()">+ New User</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="usersTable">
+            <thead>
+              <tr>
+                <th>ID</th><th>Username</th><th>Email</th><th>Role</th>
+                <th>Status</th><th>Last Login</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+              <tr><td colspan="7" class="loading-cell">
+                <div class="loading-dots"><span></span><span></span><span></span></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="usersPagination"></div>
+      </section>
+
+      <!-- ══ LOGS PAGE ══ -->
+      <section class="page" id="page-logs">
+        <div class="page-actions">
+          <div class="search-box">
+            <span>⌕</span>
+            <input type="text" id="logsSearch" placeholder="Filter logs..." oninput="filterLogs()" />
+          </div>
+          <select id="logsActionFilter" onchange="loadLogs()">
+            <option value="">All Actions</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="LOGOUT">LOGOUT</option>
+            <option value="CREATE">CREATE</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th><th>User</th><th>Action</th><th>Module</th>
+                <th>Description</th><th>IP</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="logsBody">
+              <tr><td colspan="7" class="loading-cell">
+                <div class="loading-dots"><span></span><span></span><span></span></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="logsPagination"></div>
+      </section>
+
+      <!-- ══ MONITORING PAGE ══ -->
+      <section class="page" id="page-monitoring">
+        <div class="monitor-grid">
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">⬡ MySQL Status</span></div>
+            <div class="panel-body" id="mysqlMonitor">
+              <div class="loading-dots"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">◈ Redis Status</span></div>
+            <div class="panel-body" id="redisMonitor">
+              <div class="loading-dots"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /page-wrapper -->
+  </main>
+
+  <!-- ══ DOC MODAL ══ -->
+  <div class="modal-overlay" id="docModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="docModalTitle">New Dokumentasi</span>
+        <button class="modal-close" onclick="closeModal('docModal')">✕</button>
+      </div>
+      <form id="docForm">
+        <input type="hidden" id="docId" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>DB TYPE</label>
+            <select id="docDbType">
+              <option value="mysql">MySQL</option>
+              <option value="redis">Redis</option>
+              <option value="postgresql">PostgreSQL</option>
+              <option value="mongodb">MongoDB</option>
+              <option value="oracle">Oracle</option>
+              <option value="db2">IBM DB2</option>
+              <option value="edb">EDB (EnterpriseDB)</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>RANK</label>
+            <input type="number" id="docRank" value="0" min="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>TITLE</label>
+          <input type="text" id="docTitle" placeholder="e.g. MySQL Backup Strategy" />
+        </div>
+        <div class="form-group">
+          <label>SUMMARY</label>
+          <input type="text" id="docSummary" placeholder="Short description..." />
+        </div>
+        <div class="form-group">
+          <label>TUTORIAL (Markdown)</label>
+          <textarea id="docTutorial" rows="8" placeholder="# Title&#10;&#10;Content here..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>TAGS (comma separated)</label>
+          <input type="text" id="docTags" placeholder="mysql, backup, homebrew" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onclick="closeModal('docModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ USER MODAL ══ -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="userModalTitle">New User</span>
+        <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+      </div>
+      <form id="userForm">
+        <input type="hidden" id="userId" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>USERNAME</label>
+            <input type="text" id="userUsername" placeholder="username" />
+          </div>
+          <div class="form-group">
+            <label>PASSWORD</label>
+            <input type="password" id="userPassword" placeholder="••••••••" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>EMAIL</label>
+            <input type="email" id="userEmail" placeholder="user@example.com" />
+          </div>
+          <div class="form-group">
+            <label>FULL NAME</label>
+            <input type="text" id="userFullName" placeholder="Full Name" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>STATUS</label>
+          <select id="userActive">
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onclick="closeModal('userModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ DOC DETAIL MODAL ══ -->
+  <div class="modal-overlay" id="docDetailModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:.75rem;flex:1;min-width:0">
+          <span id="docDetailBadge" class="doc-type-badge"></span>
+          <span id="docDetailTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-shrink:0">
+          <button class="btn-sm" id="docDetailEditBtn" style="display:none">Edit</button>
+          <button class="modal-close" onclick="closeModal('docDetailModal')">✕</button>
+        </div>
+      </div>
+      <div class="doc-detail-meta" id="docDetailMeta"></div>
+      <div class="doc-detail-content" id="docDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- LOADING OVERLAY (shown during token verification on refresh) -->
+  <div id="appLoading" style="display:none;position:fixed;inset:0;background:#0A0F1C;z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:1rem;">
+    <span style="color:#00FFFF;font-size:2rem;filter:drop-shadow(0 0 12px rgba(0,255,255,.5))">⬡</span>
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <span style="color:#6B8099;font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:.1em">VERIFYING SESSION...</span>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

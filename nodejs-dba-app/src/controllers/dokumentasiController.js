@@ -1,4 +1,5 @@
 const { DocumentasiDB } = require('../models/index');
+const { Op } = require('sequelize');
 const { getCache, setCache, delCacheByPattern } = require('../config/redis');
 const { success, created, notFound, badRequest } = require('../utils/response');
 const { logActivity } = require('../middleware/activityLogger');
@@ -7,17 +8,24 @@ const logger = require('../utils/logger');
 const CACHE_PREFIX = 'dokumentasi';
 const CACHE_TTL = 600; // 10 minutes
 
+// Valid sort columns (whitelist to prevent SQL injection)
+const SORT_COLS = ['id', 'title', 'db_type', 'rank', 'createdAt', 'updatedAt'];
+
 /**
  * GET /api/dokumentasi
+ * Query params: page, limit, db_type, search, sort, order
  */
 const getAll = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const offset = (page - 1) * limit;
     const db_type = req.query.db_type || null;
+    const search  = req.query.search  || req.query.q || null;
+    const sortCol = SORT_COLS.includes(req.query.sort) ? req.query.sort : 'rank';
+    const sortDir = req.query.order === 'desc' ? 'DESC' : 'ASC';
 
-    const cacheKey = `${CACHE_PREFIX}:list:${page}:${limit}:${db_type || 'all'}`;
+    const cacheKey = `${CACHE_PREFIX}:list:${page}:${limit}:${db_type||'all'}:${search||''}:${sortCol}:${sortDir}`;
 
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -29,21 +37,33 @@ const getAll = async (req, res) => {
 
     const where = { flag: 1 };
     if (db_type) where.db_type = db_type;
+    if (search) {
+      where[Op.or] = [
+        { title:   { [Op.like]: `%${search}%` } },
+        { summary: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const order = sortCol === 'rank'
+      ? [['rank', sortDir], ['createdAt', 'DESC']]
+      : [[sortCol, sortDir]];
 
     const { count, rows } = await DocumentasiDB.findAndCountAll({
       where,
       limit,
       offset,
-      order: [['rank', 'ASC'], ['created_at', 'DESC']],
-      attributes: { exclude: ['tutorial'] }, // exclude heavy content in list
+      order,
+      attributes: { exclude: ['tutorial'] },
     });
 
     const result = {
-      total: count,
+      total:      count,
       page,
       limit,
       totalPages: Math.ceil(count / limit),
-      data: rows,
+      sort:       sortCol,
+      order:      sortDir,
+      data:       rows,
     };
 
     await setCache(cacheKey, result, CACHE_TTL);
@@ -85,7 +105,8 @@ const getById = async (req, res) => {
  */
 const create = async (req, res) => {
   try {
-    const { db_type, title, tutorial, summary, rank, tags } = req.body;
+    const { db_type, title, summary, rank, tags } = req.body;
+    const tutorial = req.body.tutorial || req.body.tutor || null;
 
     if (!db_type || !title) {
       return badRequest(res, 'db_type and title are required');
@@ -97,7 +118,7 @@ const create = async (req, res) => {
       tutorial,
       summary,
       rank: rank || 0,
-      tags,
+      tags: Array.isArray(tags) ? tags : (tags ? String(tags).split(',').map(t => t.trim()).filter(Boolean) : []),
       author_id: req.user ? req.user.id : null,
       flag: 1,
     });
@@ -118,16 +139,21 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { db_type, title, tutorial, summary, rank, tags, flag } = req.body;
+    const { db_type, title, summary, rank, tags, flag } = req.body;
+    const tutorial = req.body.tutorial || req.body.tutor;
 
     const doc = await DocumentasiDB.findOne({ where: { id } });
     if (!doc) return notFound(res, 'Dokumentasi not found');
 
-    await doc.update({ db_type, title, tutorial, summary, rank, tags, flag });
+    const parsedTags = Array.isArray(tags)
+      ? tags
+      : (tags ? String(tags).split(',').map(t => t.trim()).filter(Boolean) : doc.tags);
+
+    await doc.update({ db_type, title, tutorial, summary, rank, tags: parsedTags, flag });
 
     await delCacheByPattern(`${CACHE_PREFIX}:${id}`);
     await delCacheByPattern(`${CACHE_PREFIX}:list:*`);
-    await logActivity(req, 'UPDATE', 'dokumentasi', `Updated ID: ${id}`);
+    await logActivity(req, 'UPDATE', 'dokumentasi', `Updated ID: ${id} — ${title || doc.title}`);
 
     return success(res, doc, 'Dokumentasi updated successfully');
   } catch (err) {
