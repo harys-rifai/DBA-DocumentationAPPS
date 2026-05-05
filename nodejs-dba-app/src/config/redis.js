@@ -6,7 +6,8 @@ const redisConfig = {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: parseInt(process.env.REDIS_PORT) || 6379,
   password: process.env.REDIS_PASS,
-  username: process.env.REDIS_USER,
+  // username is only needed for Redis 6+ ACL users — omit when using requirepass only
+  ...(process.env.REDIS_USER ? { username: process.env.REDIS_USER } : {}),
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     return delay;

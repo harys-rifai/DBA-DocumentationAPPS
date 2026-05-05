@@ -1752,3 +1752,137 @@ tail -f /var/log/efm-4.0/startup.log
     rank: 48,
     tags: ['edb', 'efm', 'failover', 'high-availability', 'cluster']
   },
+
+  // ─── EDB entries 9-10 ─────────────────────────────────────
+  {
+    db_type: 'edb',
+    title: 'EDB Postgres Connection Pooling with PgBouncer',
+    summary: 'Configure PgBouncer connection pooler for EDB Postgres Advanced Server on RHEL to handle high concurrency.',
+    tutorial: `# EDB Postgres Connection Pooling with PgBouncer
+
+## Install PgBouncer
+
+\`\`\`bash
+sudo dnf install -y pgbouncer
+\`\`\`
+
+## Configure /etc/pgbouncer/pgbouncer.ini
+
+\`\`\`ini
+[databases]
+edbdb = host=localhost port=5444 dbname=edbdb
+
+[pgbouncer]
+listen_addr = *
+listen_port = 6432
+auth_type = md5
+auth_file = /etc/pgbouncer/userlist.txt
+pool_mode = transaction
+max_client_conn = 2000
+default_pool_size = 50
+reserve_pool_size = 10
+reserve_pool_timeout = 3
+max_db_connections = 200
+server_idle_timeout = 600
+log_connections = 1
+log_disconnections = 1
+stats_period = 60
+\`\`\`
+
+## Create userlist.txt
+
+\`\`\`bash
+# Generate MD5: md5(password + username)
+echo -n "AppPass123appuser" | md5sum
+# Result: abc123...
+
+echo '"appuser" "md5abc123..."' | sudo tee /etc/pgbouncer/userlist.txt
+echo '"enterprisedb" "md5<hash>"' | sudo tee -a /etc/pgbouncer/userlist.txt
+\`\`\`
+
+## Start and Enable
+
+\`\`\`bash
+sudo systemctl start pgbouncer
+sudo systemctl enable pgbouncer
+
+# Test connection via PgBouncer (port 6432)
+psql -h localhost -p 6432 -U appuser edbdb
+\`\`\`
+
+## Monitor PgBouncer
+
+\`\`\`sql
+-- Connect to admin console
+psql -h localhost -p 6432 -U pgbouncer pgbouncer
+
+SHOW POOLS;
+SHOW STATS;
+SHOW SERVERS;
+SHOW CLIENTS;
+SHOW CONFIG;
+\`\`\``,
+    rank: 49,
+    tags: ['edb', 'pgbouncer', 'connection-pooling', 'rhel', 'performance']
+  },
+  {
+    db_type: 'edb',
+    title: 'EDB Postgres Monitoring with Postgres Enterprise Manager',
+    summary: 'Set up EDB Postgres Enterprise Manager (PEM) to monitor and manage EDB Postgres servers.',
+    tutorial: `# EDB Postgres Monitoring with PEM
+
+## Install PEM Server
+
+\`\`\`bash
+# Add EDB repository
+sudo dnf install -y https://yum.enterprisedb.com/edbrepos/edb-repo-latest.noarch.rpm
+sudo sed -i 's/<username>:<password>/myuser:mypass/' /etc/yum.repos.d/edb.repo
+
+# Install PEM server
+sudo dnf install -y edb-pem
+
+# Configure PEM server
+sudo /usr/edb/pem/bin/configure-pem-server.sh
+\`\`\`
+
+## Register Agent on Monitored Server
+
+\`\`\`bash
+# Install PEM agent
+sudo dnf install -y edb-pem-agent
+
+# Register agent
+sudo /usr/edb/pem/agent/bin/pemworker --register-agent \
+  --pem-server 192.168.1.10 \
+  --pem-port 8443 \
+  --pem-user admin \
+  --display-name "DB-Server-01"
+\`\`\`
+
+## Key Metrics to Monitor
+
+\`\`\`sql
+-- Active sessions
+SELECT pid, usename, application_name, state,
+  now() - query_start AS duration,
+  query
+FROM pg_stat_activity
+WHERE state != 'idle'
+ORDER BY duration DESC;
+
+-- Table sizes
+SELECT schemaname, tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS total_size
+FROM pg_stat_user_tables
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+LIMIT 20;
+
+-- Replication lag
+SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn,
+  (sent_lsn - replay_lsn) AS replication_lag_bytes
+FROM pg_stat_replication;
+\`\`\``,
+    rank: 50,
+    tags: ['edb', 'pem', 'monitoring', 'enterprise-manager', 'rhel']
+  },
+
