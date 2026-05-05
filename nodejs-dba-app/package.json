@@ -8,7 +8,10 @@
     "dev": "nodemon src/app.js",
     "migrate": "node src/database/migrate.js",
     "seed": "node src/database/seed.js",
-    "seed:docs": "node src/database/seed_docs.js"
+    "seed:docs": "node src/database/seed_docs.js",
+    "seed:dba50": "node src/database/seed_dba50.js",
+    "seed:runbook100": "node src/database/seed_runbook100.js",
+    "seed:runbooks": "node src/database/seed_all_runbooks.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
