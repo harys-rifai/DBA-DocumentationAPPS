@@ -9,7 +9,7 @@ require('dotenv').config();
 const fs   = require('fs');
 const path = require('path');
 const { connectDB } = require('../config/database');
-const { DocumentasiDB } = require('../models/index');
+const { RunbookAI } = require('../models/index');
 const logger = require('../utils/logger');
 
 // ─── Tutorial file definitions ────────────────────────────
@@ -98,7 +98,7 @@ const seed = async () => {
       }
 
       // Upsert: update if title exists, create if not
-      const [doc, created] = await DocumentasiDB.findOrCreate({
+      const [doc, created] = await RunbookAI.findOrCreate({
         where: { title: entry.title },
         defaults: {
           db_type:  entry.db_type,

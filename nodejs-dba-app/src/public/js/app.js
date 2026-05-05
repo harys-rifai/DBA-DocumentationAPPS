@@ -168,7 +168,7 @@ function isAdmin()   { return userRole() === 'admin'; }
 function canEdit()   { var r = userRole(); return r === 'admin' || r === 'dba'; }
 var PAGE_TITLES = {
   dashboard:   'Overview',
-  dokumentasi: 'Dokumentasi DB',
+  dokumentasi: 'Runbook AI',
   users:       'Users',
   logs:        'Activity Logs',
   monitoring:  'Monitoring',
@@ -452,10 +452,16 @@ function renderDocsPagination() {
   if (!el) return;
   var total = DOCS_STATE.totalPages;
   var cur   = DOCS_STATE.page;
+
+  // ── Prev / Next buttons ──────────────────────────────────
+  var prevBtn = document.getElementById('docsPrevBtn');
+  var nextBtn = document.getElementById('docsNextBtn');
+  if (prevBtn) prevBtn.disabled = cur <= 1;
+  if (nextBtn) nextBtn.disabled = cur >= total;
+
+  // ── Page number buttons (only when > 1 page) ────────────
   if (total <= 1) { el.innerHTML = ''; return; }
 
-  var pages = [];
-  // always show first, last, current ±2
   var show = {};
   [1, total].forEach(function(p) { show[p] = true; });
   for (var i = Math.max(1, cur - 2); i <= Math.min(total, cur + 2); i++) show[i] = true;
@@ -469,10 +475,7 @@ function renderDocsPagination() {
     prev = p;
   });
 
-  el.innerHTML =
-    '<button class="page-btn" ' + (cur <= 1 ? 'disabled' : '') + ' onclick="docsGoPage(' + (cur-1) + ')">‹</button>' +
-    html +
-    '<button class="page-btn" ' + (cur >= total ? 'disabled' : '') + ' onclick="docsGoPage(' + (cur+1) + ')">›</button>';
+  el.innerHTML = html;
 }
 
 function docsGoPage(p) {

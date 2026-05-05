@@ -23,7 +23,7 @@
         <span class="nav-icon">◈</span> Overview
       </a>
       <a href="#" class="nav-item" data-page="dokumentasi">
-        <span class="nav-icon">◉</span> Dokumentasi DB
+        <span class="nav-icon">◉</span> Runbook AI
       </a>
       <a href="#" class="nav-item" data-page="users">
         <span class="nav-icon">◎</span> Users
@@ -149,7 +149,7 @@
 
         <div class="panel" style="margin-top:1.5rem">
           <div class="panel-header">
-            <span class="panel-title">◉ Latest Dokumentasi</span>
+            <span class="panel-title">◉ Latest Runbook AI</span>
             <button class="btn-sm" onclick="navigate('dokumentasi')">View All →</button>
           </div>
           <div class="panel-body" id="latestDocs">
@@ -216,7 +216,15 @@
         <!-- Pagination + info -->
         <div class="table-footer">
           <div class="table-info" id="docsInfo">—</div>
-          <div class="pagination" id="docsPagination"></div>
+          <div class="pagination-nav">
+            <button class="page-btn page-btn-prev" id="docsPrevBtn" onclick="docsGoPage(DOCS_STATE.page - 1)" disabled>
+              ‹ Previous
+            </button>
+            <div class="pagination" id="docsPagination"></div>
+            <button class="page-btn page-btn-next" id="docsNextBtn" onclick="docsGoPage(DOCS_STATE.page + 1)" disabled>
+              Next ›
+            </button>
+          </div>
         </div>
 
       </section>

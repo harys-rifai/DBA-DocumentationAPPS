@@ -1,4 +1,4 @@
-const { DocumentasiDB } = require('../models/index');
+const { RunbookAI } = require('../models/index');
 const { Op } = require('sequelize');
 const { getCache, setCache, delCacheByPattern } = require('../config/redis');
 const { success, created, notFound, badRequest } = require('../utils/response');
@@ -48,7 +48,7 @@ const getAll = async (req, res) => {
       ? [['rank', sortDir], ['createdAt', 'DESC']]
       : [[sortCol, sortDir]];
 
-    const { count, rows } = await DocumentasiDB.findAndCountAll({
+    const { count, rows } = await RunbookAI.findAndCountAll({
       where,
       limit,
       offset,
@@ -89,7 +89,7 @@ const getById = async (req, res) => {
     }
 
     logger.info(`Cache MISS: ${cacheKey}`);
-    const doc = await DocumentasiDB.findOne({ where: { id, flag: 1 } });
+    const doc = await RunbookAI.findOne({ where: { id, flag: 1 } });
     if (!doc) return notFound(res, 'Dokumentasi not found');
 
     await setCache(cacheKey, doc, CACHE_TTL);
@@ -112,7 +112,7 @@ const create = async (req, res) => {
       return badRequest(res, 'db_type and title are required');
     }
 
-    const doc = await DocumentasiDB.create({
+    const doc = await RunbookAI.create({
       db_type,
       title,
       tutorial,
@@ -142,7 +142,7 @@ const update = async (req, res) => {
     const { db_type, title, summary, rank, tags, flag } = req.body;
     const tutorial = req.body.tutorial || req.body.tutor;
 
-    const doc = await DocumentasiDB.findOne({ where: { id } });
+    const doc = await RunbookAI.findOne({ where: { id } });
     if (!doc) return notFound(res, 'Dokumentasi not found');
 
     const parsedTags = Array.isArray(tags)
@@ -169,7 +169,7 @@ const remove = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const doc = await DocumentasiDB.findOne({ where: { id, flag: 1 } });
+    const doc = await RunbookAI.findOne({ where: { id, flag: 1 } });
     if (!doc) return notFound(res, 'Dokumentasi not found');
 
     await doc.update({ flag: 0 });

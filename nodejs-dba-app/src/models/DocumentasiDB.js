@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-const DocumentasiDB = sequelize.define(
-  'DocumentasiDB',
+const RunbookAI = sequelize.define(
+  'RunbookAI',
   {
     id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -52,4 +52,4 @@ const DocumentasiDB = sequelize.define(
   }
 );
 
-module.exports = DocumentasiDB;
+module.exports = RunbookAI;

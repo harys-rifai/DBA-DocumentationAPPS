@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { connectDB } = require('../config/database');
-const { User, Role, DocumentasiDB } = require('../models/index');
+const { User, Role, RunbookAI } = require('../models/index');
 const logger = require('../utils/logger');
 
 const seed = async () => {
@@ -64,8 +64,8 @@ const seed = async () => {
 
     logger.info('Users seeded.');
 
-    // Seed DocumentasiDB
-    await DocumentasiDB.findOrCreate({
+    // Seed RunbookAI
+    await RunbookAI.findOrCreate({
       where: { title: 'MySQL Installation & Configuration' },
       defaults: {
         db_type: 'mysql',
@@ -77,7 +77,7 @@ const seed = async () => {
       },
     });
 
-    await DocumentasiDB.findOrCreate({
+    await RunbookAI.findOrCreate({
       where: { title: 'Redis Installation & Configuration' },
       defaults: {
         db_type: 'redis',
@@ -89,7 +89,7 @@ const seed = async () => {
       },
     });
 
-    logger.info('DocumentasiDB seeded.');
+    logger.info('RunbookAI seeded.');
     logger.info('Seeding completed successfully.');
     process.exit(0);
   } catch (err) {

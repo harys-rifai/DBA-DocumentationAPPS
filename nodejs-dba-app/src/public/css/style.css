@@ -455,14 +455,23 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .td-actions { display: flex; gap: .4rem; }
 
 /* ── PAGINATION ── */
-.pagination { display: flex; gap: .4rem; margin-top: 1rem; justify-content: flex-end; }
+.pagination { display: flex; gap: .4rem; align-items: center; justify-content: center; }
+.pagination-nav {
+  display: flex; align-items: center; gap: .5rem;
+  flex-wrap: wrap; justify-content: flex-end;
+}
 .page-btn {
   padding: .3rem .65rem;
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); font-size: .75rem; font-family: var(--font-mono);
   color: var(--text-dim); cursor: pointer; transition: all .15s;
 }
-.page-btn:hover, .page-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,255,255,.07); }
+.page-btn:hover:not(:disabled), .page-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,255,255,.07); }
+.page-btn:disabled { opacity: .35; cursor: not-allowed; }
+.page-btn-prev, .page-btn-next {
+  padding: .3rem .9rem;
+  font-size: .72rem; letter-spacing: .04em;
+}
 
 /* ── MODAL ── */
 .modal-overlay {

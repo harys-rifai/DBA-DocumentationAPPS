@@ -13,4 +13,5 @@
 
 
 
+mysqldumpslow /opt/homebrew/var/mysql/slow.log
 
