@@ -154,6 +154,18 @@ function extractTotal(res) {
   if (d.data && Array.isArray(d.data)) return d.data.length;
   return 0;
 }
+
+// ─── Helper: get role name regardless of string or object ────────────────────
+function userRole() {
+  if (!STATE.user) return '';
+  var r = STATE.user.role;
+  if (!r) return '';
+  if (typeof r === 'string') return r;
+  if (typeof r === 'object' && r.name) return r.name;
+  return String(r);
+}
+function isAdmin()   { return userRole() === 'admin'; }
+function canEdit()   { var r = userRole(); return r === 'admin' || r === 'dba'; }
 var PAGE_TITLES = {
   dashboard:   'Overview',
   dokumentasi: 'Dokumentasi DB',
@@ -404,8 +416,8 @@ async function loadDocs() {
 
 function renderDocsTable(rows) {
   var tbody   = document.getElementById('docsBody');
-  var canEdit = STATE.user && (STATE.user.role === 'admin' || STATE.user.role === 'dba');
-  var isAdmin = STATE.user && STATE.user.role === 'admin';
+  var _canEdit = canEdit();
+  var _isAdmin = isAdmin();
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">No dokumentasi found.</td></tr>';
@@ -428,8 +440,8 @@ function renderDocsTable(rows) {
       '<td class="td-mono">' + fmtDate(d.createdAt) + '</td>' +
       '<td><div class="td-actions">' +
         '<button class="btn-sm" onclick="openDocDetail(' + d.id + ')">View</button>' +
-        (canEdit ? '<button class="btn-sm" onclick="openDocModal(' + d.id + ')">Edit</button>' : '') +
-        (isAdmin ? '<button class="btn-danger" onclick="deleteDoc(' + d.id + ')">Del</button>' : '') +
+        (_canEdit ? '<button class="btn-sm" onclick="openDocModal(' + d.id + ')">Edit</button>' : '') +
+        (_isAdmin ? '<button class="btn-danger" onclick="deleteDoc(' + d.id + ')">Del</button>' : '') +
       '</div></td>' +
     '</tr>';
   }).join('');
@@ -474,14 +486,14 @@ async function openDocDetail(id) {
   var d   = res && res.data;
   if (!d) return;
 
-  var canEdit = STATE.user && (STATE.user.role === 'admin' || STATE.user.role === 'dba');
+  var _canEdit = canEdit();
   var badge   = document.getElementById('docDetailBadge');
   var editBtn = document.getElementById('docDetailEditBtn');
 
   document.getElementById('docDetailTitle').textContent = d.title || '—';
   if (badge) { badge.className = 'doc-type-badge type-' + esc(d.db_type); badge.textContent = d.db_type; }
   if (editBtn) {
-    editBtn.style.display = canEdit ? 'inline-block' : 'none';
+    editBtn.style.display = _canEdit ? 'inline-block' : 'none';
     editBtn.onclick = function() { closeModal('docDetailModal'); openDocModal(id); };
   }
 
@@ -560,7 +572,7 @@ async function loadUsers() {
 
 function renderUsers(users) {
   var tbody   = document.getElementById('usersBody');
-  var isAdmin = STATE.user && STATE.user.role === 'admin';
+  var _isAdmin = isAdmin();
   if (!users.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No users found.</td></tr>';
     return;
@@ -575,8 +587,8 @@ function renderUsers(users) {
       '<td><span class="status-badge ' + (u.active ? 'status-active' : 'status-inactive') + '">' + (u.active ? 'Active' : 'Inactive') + '</span></td>' +
       '<td class="td-mono">' + (u.last_login ? fmtDate(u.last_login) : '—') + '</td>' +
       '<td><div class="td-actions">' +
-        (isAdmin ? '<button class="btn-sm" onclick="openUserModal(' + u.id + ')">Edit</button>' : '') +
-        (isAdmin ? '<button class="btn-danger" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
+        (_isAdmin ? '<button class="btn-sm" onclick="openUserModal(' + u.id + ')">Edit</button>' : '') +
+        (_isAdmin ? '<button class="btn-danger" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
       '</div></td>' +
     '</tr>';
   }).join('');
