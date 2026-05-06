@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # Runbook AI - Start/Stop Script
-# Usage: ./run.sh [start|stop|restart|status]
+# Usage: ./run.sh [start|stop|restart|status|9router]
 
 APP_DIR="$HOME/web/redis-mysql/nodejs-dba-app"
 APP_NAME="nodejs-dba-app"
@@ -30,6 +30,22 @@ check_status() {
         fi
     else
         echo "${RED}✗ App is not running${NC}"
+        return 1
+    fi
+}
+
+run_9router() {
+    echo "${YELLOW}Running 9router...${NC}"
+    cd "$APP_DIR" || exit 1
+    nohup 9router > "$APP_DIR/9router.log" 2>&1 &
+    echo $! > "/tmp/9router.pid"
+    sleep 2
+    if ps -p $(cat "/tmp/9router.pid") > /dev/null 2>&1; then
+        echo "${GREEN}✓ 9router started${NC} (PID: $(cat "/tmp/9router.pid"))"
+        echo "  Log: $APP_DIR/9router.log"
+    else
+        echo "${RED}✗ Failed to start 9router${NC}"
+        rm -f "/tmp/9router.pid"
         return 1
     fi
 }
@@ -125,14 +141,18 @@ case "$1" in
     status)
         check_status
         ;;
+    9router)
+        run_9router
+        ;;
     *)
-        echo "Usage: $0 {start|stop|restart|status}"
+        echo "Usage: $0 {start|stop|restart|status|9router}"
         echo ""
         echo "Commands:"
         echo "  start   - Start the application"
         echo "  stop    - Stop the application"
         echo "  restart - Restart the application"
         echo "  status  - Check application status"
+        echo "  9router - Run 9router command"
         exit 1
         ;;
 esac
