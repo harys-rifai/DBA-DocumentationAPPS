@@ -72,6 +72,18 @@ model LogActivity {
   @@map("log_activities")
 }
 
+model AppVersion {
+  id          Int      @id @default(autoincrement())
+  appVersion  String   @unique @db.VarChar(50)
+  detail      String?
+  createdBy   Int?
+  flag        Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("apps_version")
+}
+
 model DokumentasiDB {
   id             Int      @id @default(autoincrement())
   dbType         DbType

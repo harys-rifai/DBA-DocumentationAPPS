@@ -294,7 +294,7 @@ async function loadDashboard() {
   } else {
     latestDocsEl.innerHTML = topDocs.map(function(d) {
       return '<div class="mini-doc-row" onclick="openDocDetail(' + d.id + ')">' +
-        '<span class="doc-type-badge type-' + esc(d.db_type) + ' mini-doc-type">' + esc(d.db_type) + '</span>' +
+        '<span class="doc-type-badge type-' + esc(d.dbType) + ' mini-doc-type">' + esc(d.dbType) + '</span>' +
         '<span class="mini-doc-title">' + esc(d.title) + '</span>' +
         '<span style="color:var(--text-muted);font-size:.7rem;font-family:var(--font-mono)">#' + (d.rank||0) + '</span>' +
       '</div>';
@@ -433,12 +433,12 @@ function renderDocsTable(rows) {
     }).join('') + (tags.length > 3 ? '<span class="doc-tag">+' + (tags.length - 3) + '</span>' : '');
 
     var versionBadge = d.version ? '<span class="version-badge">' + esc(d.version) + '</span>' : '—';
-    var aiBadge = d.ai_generated ? '<span class="ai-badge" title="AI Generated: ' + esc(d.ai_source||'') + '">🤖</span>' : '';
-    var autoUpdateIcon = d.auto_update !== 0 ? '<span style="color:var(--green);font-size:.7rem" title="Auto-update enabled">↻</span>' : '';
+    var aiBadge = d.aiGenerated ? '<span class="ai-badge" title="AI Generated: ' + esc(d.aiSource||'') + '">🤖</span>' : '';
+    var autoUpdateIcon = d.autoUpdate !== 0 ? '<span style="color:var(--green);font-size:.7rem" title="Auto-update enabled">↻</span>' : '';
 
     return '<tr>' +
       '<td class="td-mono" style="color:var(--text-muted)">' + d.id + '</td>' +
-      '<td><span class="doc-type-badge type-' + esc(d.db_type) + '">' + esc(d.db_type) + '</span></td>' +
+      '<td><span class="doc-type-badge type-' + esc(d.dbType) + '">' + esc(d.dbType) + '</span></td>' +
       '<td style="max-width:220px"><span style="cursor:pointer;color:var(--cyan)" onclick="openDocDetail(' + d.id + ')" title="' + esc(d.title) + '">' + esc(d.title) + '</span></td>' +
       '<td>' + versionBadge + '</td>' +
       '<td class="td-wrap" style="max-width:260px;color:var(--text-dim)">' + esc((d.summary || '').substring(0, 80)) + (d.summary && d.summary.length > 80 ? '…' : '') + '</td>' +
@@ -505,7 +505,7 @@ async function openDocDetail(id) {
   var versionBadge = document.getElementById('docDetailVersion');
 
   document.getElementById('docDetailTitle').textContent = d.title || '—';
-  if (badge) { badge.className = 'doc-type-badge type-' + esc(d.db_type); badge.textContent = d.db_type; }
+  if (badge) { badge.className = 'doc-type-badge type-' + esc(d.dbType); badge.textContent = d.dbType; }
   if (editBtn) {
     editBtn.style.display = _canEdit ? 'inline-block' : 'none';
     editBtn.onclick = function() { closeModal('docDetailModal'); openDocModal(id); };
@@ -530,10 +530,10 @@ async function openDocDetail(id) {
   if (d.version) {
     metaHtml += '<span class="version-badge" style="font-size:.7rem">v' + esc(d.version) + '</span>';
   }
-  if (d.ai_generated) {
+  if (d.aiGenerated) {
     metaHtml += '<span class="ai-badge" style="font-size:.7rem">🤖 AI Generated</span>';
   }
-  if (d.auto_update !== 0) {
+  if (d.autoUpdate !== 0) {
     metaHtml += '<span style="color:var(--green);font-size:.7rem">↻ Auto-update ON</span>';
   }
   
@@ -541,7 +541,7 @@ async function openDocDetail(id) {
     tags.map(function(t){ return '<span class="doc-tag">' + esc(t) + '</span>'; }).join('');
 
   document.getElementById('docDetailMeta').innerHTML = metaHtml;
-  document.getElementById('docDetailContent').textContent = d.tutorial || d.tutor || '(no content)';
+  document.getElementById('docDetailContent').textContent = d.tutorial || '(no content)';
   
   // Show version history if available
   var historyEl = document.getElementById('docVersionHistory');
@@ -585,11 +585,11 @@ function openDocModal(id) {
       var tutorialEl = document.getElementById('docTutorial');
       var tagsEl     = document.getElementById('docTags');
       
-      if (dbTypeEl) dbTypeEl.value   = d.db_type   || 'mysql';
+      if (dbTypeEl) dbTypeEl.value   = d.dbType    || 'mysql';
       if (rankEl)    rankEl.value     = d.rank      || 0;
       if (titleEl)   titleEl.value    = d.title     || '';
       if (summaryEl) summaryEl.value  = d.summary   || '';
-      if (tutorialEl) tutorialEl.value = d.tutorial  || d.tutor || '';
+      if (tutorialEl) tutorialEl.value = d.tutorial  || '';
       if (tagsEl)     tagsEl.value     = parseTags(d.tags).join(', ');
     }).catch(function() {
       toast('Failed to load document', 'error');
@@ -603,13 +603,13 @@ document.getElementById('docForm').addEventListener('submit', async function(e) 
   e.preventDefault();
   var id   = document.getElementById('docId').value;
   var body = {
-    db_type:  document.getElementById('docDbType').value,
+    dbType:   document.getElementById('docDbType').value,
     rank:     parseInt(document.getElementById('docRank').value) || 0,
     title:    document.getElementById('docTitle').value.trim(),
     summary:  document.getElementById('docSummary').value.trim(),
     tutorial: document.getElementById('docTutorial').value.trim(),
     tags:     document.getElementById('docTags').value.trim(),
-    flag:     1,
+    flag:     true,
   };
   if (!body.title) { toast('Title is required', 'error'); return; }
   var res = id ? await api('PUT', '/dokumentasi/' + id, body) : await api('POST', '/dokumentasi', body);
@@ -656,7 +656,7 @@ function renderUsers(users) {
       '<td>' + esc(u.email || '—') + '</td>' +
       '<td><span class="role-badge role-' + roleName + '">' + roleName + '</span></td>' +
       '<td><span class="status-badge ' + (u.active ? 'status-active' : 'status-inactive') + '">' + (u.active ? 'Active' : 'Inactive') + '</span></td>' +
-      '<td class="td-mono">' + (u.last_login ? fmtDate(u.last_login) : '—') + '</td>' +
+      '<td class="td-mono">' + (u.lastLogin ? fmtDate(u.lastLogin) : '—') + '</td>' +
       '<td><div class="td-actions">' +
         (_isAdmin ? '<button class="btn-sm" onclick="openUserModal(' + u.id + ')">Edit</button>' : '') +
         (_isAdmin ? '<button class="btn-danger" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
@@ -685,8 +685,8 @@ function openUserModal(id) {
       if (!u) return;
       document.getElementById('userUsername').value = u.username  || '';
       document.getElementById('userEmail').value    = u.email     || '';
-      document.getElementById('userFullName').value = u.full_name || '';
-      document.getElementById('userActive').value   = (u.active != null) ? u.active : 1;
+     document.getElementById('userFullName').value = u.fullName || '';
+     document.getElementById('userActive').value   = (u.active != null) ? u.active : 1;
     });
   }
   openModal('userModal');
@@ -768,29 +768,21 @@ function filterLogs() {
 // ─── Monitoring ───────────────────────────────────────────
 async function loadMonitoring() {
   var health  = await checkHealth();
-  var mysqlEl = document.getElementById('mysqlMonitor');
-  var redisEl = document.getElementById('redisMonitor');
-
-  if (health && health.services) {
-    var mysqlOk = health.services.mysql === 'connected';
-    var redisOk = health.services.redis === 'connected';
-    mysqlEl.innerHTML =
-      '<div class="monitor-row"><span class="monitor-key">Status</span>' +
-        '<span class="monitor-val" style="color:' + (mysqlOk ? 'var(--green)' : 'var(--red)') + '">' + esc(health.services.mysql||'unknown') + '</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">Host</span><span class="monitor-val">localhost:3306</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">Database</span><span class="monitor-val">homebrew</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">User</span><span class="monitor-val">dba_user</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">Checked</span><span class="monitor-val">' + fmtTime(health.timestamp) + '</span></div>';
-
-    redisEl.innerHTML =
-      '<div class="monitor-row"><span class="monitor-key">Status</span>' +
-        '<span class="monitor-val" style="color:' + (redisOk ? 'var(--green)' : 'var(--orange)') + '">' + esc(health.services.redis||'unknown') + '</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">Host</span><span class="monitor-val">127.0.0.1:6379</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">User</span><span class="monitor-val">redis</span></div>' +
-      '<div class="monitor-row"><span class="monitor-key">Checked</span><span class="monitor-val">' + fmtTime(health.timestamp) + '</span></div>';
-  } else {
-    mysqlEl.innerHTML = '<p style="color:var(--red);font-size:.8rem;padding:.5rem">Cannot reach server</p>';
-    redisEl.innerHTML = '<p style="color:var(--red);font-size:.8rem;padding:.5rem">Cannot reach server</p>';
+  var postgresEl = document.getElementById('postgresMonitor');
+  if (!postgresEl) return;
+  
+  try {
+    var health = await api('GET', '/health');
+    if (!health || health.status !== 'success') throw 0;
+    
+    var postgresOk = health.services.postgresql === 'connected';
+    postgresEl.innerHTML =
+        '<div class="monitor-row"><span class="monitor-label">Status</span>' +
+        '<span class="monitor-val" style="color:' + (postgresOk ? 'var(--green)' : 'var(--red)') + '">' + esc(health.services.postgresql||'unknown') + '</span></div>' +
+        '<div class="monitor-row"><span class="monitor-label">Last Check</span>' +
+        '<span class="monitor-val">' + fmtTime(new Date()) + '</span></div>';
+  } catch (_) {
+    postgresEl.innerHTML = '<p style="color:var(--red);font-size:.8rem;padding:.5rem">Cannot reach server</p>';
   }
 }
 

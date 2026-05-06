@@ -161,6 +161,52 @@ app.get('/api/auth/me', async (req, res) => {
   }
 });
 
+// Create User (protected)
+app.post('/api/users', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+  
+  try {
+    const jwt = await import('jsonwebtoken');
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch (_) {
+    return res.status(401).json({ status: 'error', message: 'Invalid token' });
+  }
+  
+  try {
+    const { username, password, email, fullName, roleId } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ status: 'error', message: 'Username and password are required' });
+    }
+    
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const user = await prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        email: email || null,
+        fullName: fullName || null,
+        roleId: roleId || null,
+        active: true,
+        flag: true,
+      },
+      include: { role: true }
+    });
+    
+    return res.status(201).json({ status: 'success', message: 'User created', data: user });
+  } catch (err) {
+    if (err.code === 'P2002') {
+      return res.status(400).json({ status: 'error', message: 'Username or email already exists' });
+    }
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // User routes
 app.get('/api/users', async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -775,6 +821,203 @@ app.post('/api/dokumentasi/ai-update/:dbType', async (req, res) => {
     }
     
     return res.json({ status: 'success', message: `AI update completed for ${handbook.name}` });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// View Single Documentation
+app.get('/api/dokumentasi/:id', async (req, res) => {
+  try {
+    const doc = await prisma.dokumentasiDB.findFirst({
+      where: { id: parseInt(req.params.id), flag: true }
+    });
+    
+    if (!doc) {
+      return res.status(404).json({ status: 'error', message: 'Documentation not found' });
+    }
+    
+    return res.json({ status: 'success', data: doc });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// Edit Documentation (protected)
+app.put('/api/dokumentasi/:id', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+  
+  try {
+    const jwt = await import('jsonwebtoken');
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch (_) {
+    return res.status(401).json({ status: 'error', message: 'Invalid token' });
+  }
+  
+  try {
+    const { dbType, title, tutorial, summary, rank, tags, version, autoUpdate } = req.body;
+    const id = parseInt(req.params.id);
+    
+    const existing = await prisma.dokumentasiDB.findFirst({
+      where: { id, flag: true }
+    });
+    
+    if (!existing) {
+      return res.status(404).json({ status: 'error', message: 'Documentation not found' });
+    }
+    
+    const doc = await prisma.dokumentasiDB.update({
+      where: { id },
+      data: {
+        dbType: dbType || existing.dbType,
+        title: title || existing.title,
+        tutorial: tutorial !== undefined ? tutorial : existing.tutorial,
+        summary: summary !== undefined ? summary : existing.summary,
+        rank: rank !== undefined ? rank : existing.rank,
+        tags: tags || existing.tags,
+        version: version || existing.version,
+        autoUpdate: autoUpdate !== undefined ? autoUpdate : existing.autoUpdate,
+      }
+    });
+    
+    return res.json({ status: 'success', message: 'Documentation updated', data: doc });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// Delete Documentation (protected, soft delete)
+app.delete('/api/dokumentasi/:id', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+  
+  try {
+    const jwt = await import('jsonwebtoken');
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch (_) {
+    return res.status(401).json({ status: 'error', message: 'Invalid token' });
+  }
+  
+  try {
+    const id = parseInt(req.params.id);
+    
+    const existing = await prisma.dokumentasiDB.findFirst({
+      where: { id, flag: true }
+    });
+    
+    if (!existing) {
+      return res.status(404).json({ status: 'error', message: 'Documentation not found' });
+    }
+    
+    await prisma.dokumentasiDB.update({
+      where: { id },
+      data: { flag: false }
+    });
+    
+    return res.json({ status: 'success', message: 'Documentation deleted' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// View Single User
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id: parseInt(req.params.id), flag: true },
+      include: { role: true }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    
+    return res.json({ status: 'success', data: user });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// Edit User (protected)
+app.put('/api/users/:id', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+  
+  try {
+    const jwt = await import('jsonwebtoken');
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch (_) {
+    return res.status(401).json({ status: 'error', message: 'Invalid token' });
+  }
+  
+  try {
+    const { username, email, fullName, active, roleId } = req.body;
+    const id = parseInt(req.params.id);
+    
+    const existing = await prisma.user.findFirst({
+      where: { id, flag: true }
+    });
+    
+    if (!existing) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        username: username || existing.username,
+        email: email !== undefined ? email : existing.email,
+        fullName: fullName !== undefined ? fullName : existing.fullName,
+        active: active !== undefined ? active : existing.active,
+        roleId: roleId !== undefined ? roleId : existing.roleId,
+      },
+      include: { role: true }
+    });
+    
+    return res.json({ status: 'success', message: 'User updated', data: user });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// Delete User (protected, soft delete)
+app.delete('/api/users/:id', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+  
+  try {
+    const jwt = await import('jsonwebtoken');
+    jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch (_) {
+    return res.status(401).json({ status: 'error', message: 'Invalid token' });
+  }
+  
+  try {
+    const id = parseInt(req.params.id);
+    
+    const existing = await prisma.user.findFirst({
+      where: { id, flag: true }
+    });
+    
+    if (!existing) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    
+    await prisma.user.update({
+      where: { id },
+      data: { flag: false }
+    });
+    
+    return res.json({ status: 'success', message: 'User deleted' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }
