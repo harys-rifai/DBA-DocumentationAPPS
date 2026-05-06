@@ -1,34 +1,31 @@
 {
   "name": "nodejs-dba-app",
-  "version": "1.0.0",
-  "description": "Node.js app with MySQL + Redis caching layer - DBA Management",
+  "version": "2.0.0",
+  "description": "Bun + Prisma + PostgreSQL DBA Management App with AI Handbook",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "migrate": "node src/database/migrate.js",
-    "seed": "node src/database/seed.js",
-    "seed:docs": "node src/database/seed_docs.js",
-    "seed:dba50": "node src/database/seed_dba50.js",
-    "seed:runbook100": "node src/database/seed_runbook100.js",
-    "seed:runbooks": "node src/database/seed_all_runbooks.js"
+    "start": "bun run src/app.js",
+    "dev": "bun --hot src/app.js",
+    "build": "bun build src/app.js --outir dist",
+    "prisma:generate": "bunx prisma generate",
+    "prisma:migrate": "bunx prisma migrate dev",
+    "prisma:reset": "bunx prisma migrate reset --force",
+    "prisma:seed": "bun run prisma/seed.js",
+    "migrate": "bun run prisma:migrate",
+    "seed": "bun run prisma:seed"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "express-validator": "^7.1.0",
     "helmet": "^7.1.0",
-    "ioredis": "^5.3.2",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "mysql2": "^3.9.7",
-    "sequelize": "^6.37.3",
-    "uuid": "^9.0.1",
-    "winston": "^3.13.0"
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "prisma": "^6.19.3"
   }
 }

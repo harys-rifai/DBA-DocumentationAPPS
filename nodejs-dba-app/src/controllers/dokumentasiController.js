@@ -4,6 +4,7 @@ const { getCache, setCache, delCacheByPattern } = require('../config/redis');
 const { success, created, notFound, badRequest } = require('../utils/response');
 const { logActivity } = require('../middleware/activityLogger');
 const logger = require('../utils/logger');
+const { updateAllDatabases, updateSingleDatabase, DB_TYPES } = require('../services/aiService');
 
 const CACHE_PREFIX = 'dokumentasi';
 const CACHE_TTL = 600; // 10 minutes
@@ -36,7 +37,13 @@ const getAll = async (req, res) => {
     logger.info(`Cache MISS: ${cacheKey}`);
 
     const where = { flag: 1 };
-    if (db_type) where.db_type = db_type;
+    if (db_type) {
+      where.db_type = db_type;
+      // Treat 'sqlserver' as matching both 'sqlserver' and 'mssql'
+      if (db_type === 'sqlserver') {
+        where.db_type = { [Op.in]: ['sqlserver', 'mssql'] };
+      }
+    }
     if (search) {
       where[Op.or] = [
         { title:   { [Op.like]: `%${search}%` } },
@@ -185,4 +192,78 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, create, update, remove };
+/**
+ * POST /api/dokumentasi/ai-update/all
+ * Trigger AI update for all database types
+ */
+const aiUpdateAll = async (req, res) => {
+  try {
+    const results = await updateAllDatabases(req);
+    await delCacheByPattern(`${CACHE_PREFIX}:list:*`);
+    return success(res, results, `AI update completed: ${results.updated} updated, ${results.skipped} skipped`);
+  } catch (err) {
+    logger.error('AI update all error:', err.message);
+    return res.status(500).json({ status: 'error', message: 'AI update failed' });
+  }
+};
+
+/**
+ * POST /api/dokumentasi/ai-update/:dbType
+ * Trigger AI update for specific database type
+ */
+const aiUpdateSingle = async (req, res) => {
+  try {
+    const { dbType } = req.params;
+    const doc = await updateSingleDatabase(dbType, req);
+    await delCacheByPattern(`${CACHE_PREFIX}:list:*`);
+    await delCacheByPattern(`${CACHE_PREFIX}:${doc.id}`);
+    return success(res, doc, `AI update completed for ${dbType}`);
+  } catch (err) {
+    logger.error('AI update single error:', err.message);
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+/**
+ * GET /api/dokumentasi/db-types
+ * Get all supported database types with version info
+ */
+const getDbTypes = async (req, res) => {
+  try {
+    const types = DB_TYPES.map(db => ({
+      type: db.type,
+      name: db.name,
+      currentVersion: db.currentVersion,
+    }));
+    return success(res, types, 'Database types fetched');
+  } catch (err) {
+    logger.error('getDbTypes error:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch database types' });
+  }
+};
+
+/**
+ * PUT /api/dokumentasi/:id/toggle-auto-update
+ * Toggle auto-update for a documentation entry
+ */
+const toggleAutoUpdate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await RunbookAI.findOne({ where: { id } });
+    if (!doc) return notFound(res, 'Dokumentasi not found');
+    
+    const newStatus = doc.auto_update === 1 ? 0 : 1;
+    await doc.update({ auto_update: newStatus });
+    
+    await delCacheByPattern(`${CACHE_PREFIX}:${id}`);
+    await delCacheByPattern(`${CACHE_PREFIX}:list:*`);
+    
+    return success(res, { auto_update: newStatus }, 
+      `Auto-update ${newStatus ? 'enabled' : 'disabled'}`);
+  } catch (err) {
+    logger.error('toggleAutoUpdate error:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to toggle auto-update' });
+  }
+};
+
+module.exports = { getAll, getById, create, update, remove, aiUpdateAll, aiUpdateSingle, getDbTypes, toggleAutoUpdate };

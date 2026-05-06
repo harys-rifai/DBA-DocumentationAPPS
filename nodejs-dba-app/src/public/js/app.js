@@ -420,7 +420,7 @@ function renderDocsTable(rows) {
   var _isAdmin = isAdmin();
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">No dokumentasi found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:2rem">No dokumentasi found.</td></tr>';
     return;
   }
 
@@ -430,14 +430,20 @@ function renderDocsTable(rows) {
       return '<span class="doc-tag">' + esc(t) + '</span>';
     }).join('') + (tags.length > 3 ? '<span class="doc-tag">+' + (tags.length - 3) + '</span>' : '');
 
+    var versionBadge = d.version ? '<span class="version-badge">' + esc(d.version) + '</span>' : '—';
+    var aiBadge = d.ai_generated ? '<span class="ai-badge" title="AI Generated: ' + esc(d.ai_source||'') + '">🤖</span>' : '';
+    var autoUpdateIcon = d.auto_update !== 0 ? '<span style="color:var(--green);font-size:.7rem" title="Auto-update enabled">↻</span>' : '';
+
     return '<tr>' +
       '<td class="td-mono" style="color:var(--text-muted)">' + d.id + '</td>' +
       '<td><span class="doc-type-badge type-' + esc(d.db_type) + '">' + esc(d.db_type) + '</span></td>' +
       '<td style="max-width:220px"><span style="cursor:pointer;color:var(--cyan)" onclick="openDocDetail(' + d.id + ')" title="' + esc(d.title) + '">' + esc(d.title) + '</span></td>' +
+      '<td>' + versionBadge + '</td>' +
       '<td class="td-wrap" style="max-width:260px;color:var(--text-dim)">' + esc((d.summary || '').substring(0, 80)) + (d.summary && d.summary.length > 80 ? '…' : '') + '</td>' +
       '<td style="max-width:160px"><div style="display:flex;flex-wrap:wrap;gap:.2rem">' + tagHtml + '</div></td>' +
       '<td class="td-mono" style="text-align:center">' + (d.rank || 0) + '</td>' +
       '<td class="td-mono">' + fmtDate(d.createdAt) + '</td>' +
+      '<td style="text-align:center">' + aiBadge + ' ' + autoUpdateIcon + '</td>' +
       '<td><div class="td-actions">' +
         '<button class="btn-sm" onclick="openDocDetail(' + d.id + ')">View</button>' +
         (_canEdit ? '<button class="btn-sm" onclick="openDocModal(' + d.id + ')">Edit</button>' : '') +
@@ -485,6 +491,7 @@ function docsGoPage(p) {
 }
 
 async function openDocDetail(id) {
+  currentDetailDocId = id;
   var res = await api('GET', '/dokumentasi/' + id);
   var d   = res && res.data;
   if (!d) return;
@@ -492,6 +499,8 @@ async function openDocDetail(id) {
   var _canEdit = canEdit();
   var badge   = document.getElementById('docDetailBadge');
   var editBtn = document.getElementById('docDetailEditBtn');
+  var aiBtn   = document.getElementById('btnAiUpdateSingle');
+  var versionBadge = document.getElementById('docDetailVersion');
 
   document.getElementById('docDetailTitle').textContent = d.title || '—';
   if (badge) { badge.className = 'doc-type-badge type-' + esc(d.db_type); badge.textContent = d.db_type; }
@@ -499,15 +508,57 @@ async function openDocDetail(id) {
     editBtn.style.display = _canEdit ? 'inline-block' : 'none';
     editBtn.onclick = function() { closeModal('docDetailModal'); openDocModal(id); };
   }
+  if (aiBtn) {
+    aiBtn.style.display = _canEdit ? 'inline-block' : 'none';
+  }
+  if (versionBadge) {
+    if (d.version) {
+      versionBadge.style.display = 'inline-block';
+      versionBadge.textContent = 'v' + d.version;
+      versionBadge.title = 'Last AI update: ' + (d.last_ai_update ? fmtDate(d.last_ai_update) : 'Never');
+    } else {
+      versionBadge.style.display = 'none';
+    }
+  }
 
   var tags = parseTags(d.tags);
-  document.getElementById('docDetailMeta').innerHTML =
-    '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">Rank #' + (d.rank||0) + '</span>' +
-    '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">ID: ' + d.id + '</span>' +
-    (d.summary ? '<span style="color:var(--text-dim);font-size:.78rem">' + esc(d.summary) + '</span>' : '') +
+  var metaHtml = '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">Rank #' + (d.rank||0) + '</span>' +
+    '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">ID: ' + d.id + '</span>';
+  
+  if (d.version) {
+    metaHtml += '<span class="version-badge" style="font-size:.7rem">v' + esc(d.version) + '</span>';
+  }
+  if (d.ai_generated) {
+    metaHtml += '<span class="ai-badge" style="font-size:.7rem">🤖 AI Generated</span>';
+  }
+  if (d.auto_update !== 0) {
+    metaHtml += '<span style="color:var(--green);font-size:.7rem">↻ Auto-update ON</span>';
+  }
+  
+  metaHtml += (d.summary ? '<span style="color:var(--text-dim);font-size:.78rem">' + esc(d.summary) + '</span>' : '') +
     tags.map(function(t){ return '<span class="doc-tag">' + esc(t) + '</span>'; }).join('');
 
+  document.getElementById('docDetailMeta').innerHTML = metaHtml;
   document.getElementById('docDetailContent').textContent = d.tutorial || d.tutor || '(no content)';
+  
+  // Show version history if available
+  var historyEl = document.getElementById('docVersionHistory');
+  var historyContent = document.getElementById('versionHistoryContent');
+  if (d.version_history && d.version_history.length > 0) {
+    if (historyEl) historyEl.style.display = 'block';
+    if (historyContent) {
+      historyContent.innerHTML = d.version_history.map(function(v) {
+        return '<div class="version-history-item">' +
+          '<span class="version-number">v' + esc(v.version) + '</span>' +
+          '<span class="version-date">' + (v.date ? fmtDate(v.date) : '—') + '</span>' +
+          '<span class="version-changes">' + esc(v.changes || '') + '</span>' +
+        '</div>';
+      }).join('');
+    }
+  } else {
+    if (historyEl) historyEl.style.display = 'none';
+  }
+  
   openModal('docDetailModal');
 }
 
@@ -766,6 +817,57 @@ function fmtTime(iso) {
   return d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 }
 
+// ─── AI Update Functions ────────────────────────────────
+let currentDetailDocId = null;
+
+async function aiUpdateAll() {
+  if (!confirm('Trigger AI update for ALL database types? This may take several minutes.')) return;
+  
+  var btn = document.getElementById('btnAiUpdateAll');
+  btn.disabled = true;
+  btn.textContent = '🔄 Updating...';
+  toast('AI update started. This may take a few minutes...', 'info');
+  
+  try {
+    var res = await api('POST', '/dokumentasi/ai-update/all');
+    if (res && res.status === 'success') {
+      toast('AI update completed! ' + (res.data ? res.data.updated + ' updated' : ''), 'success');
+      loadDocs();
+    } else {
+      toast((res && res.message) || 'AI update failed', 'error');
+    }
+  } catch (err) {
+    toast('AI update failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 AI Update All';
+  }
+}
+
+async function aiUpdateSingle() {
+  if (!currentDetailDocId) return;
+  
+  var btn = document.getElementById('btnAiUpdateSingle');
+  btn.disabled = true;
+  btn.textContent = '🔄 Updating...';
+  
+  try {
+    var res = await api('POST', '/dokumentasi/ai-update/' + currentDetailDocId);
+    if (res && res.status === 'success') {
+      toast('AI update completed!', 'success');
+      closeModal('docDetailModal');
+      loadDocs();
+    } else {
+      toast((res && res.message) || 'AI update failed', 'error');
+    }
+  } catch (err) {
+    toast('AI update failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 AI Update';
+  }
+}
+
 // ─── Expose globals for inline onclick ────────────────────
 window.navigate      = navigate;
 window.openDocModal  = openDocModal;
@@ -778,6 +880,8 @@ window.filterUsers   = filterUsers;
 window.filterLogs    = filterLogs;
 window.loadLogs      = loadLogs;
 window.closeModal    = closeModal;
+window.aiUpdateAll   = aiUpdateAll;
+window.aiUpdateSingle = aiUpdateSingle;
 
 // ─── Boot ─────────────────────────────────────────────────
 (function init() {

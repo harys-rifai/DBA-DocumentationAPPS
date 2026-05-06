@@ -5,12 +5,12 @@ const LogActivity = sequelize.define(
   'LogActivity',
   {
     id: {
-      type: DataTypes.BIGINT.UNSIGNED,
+      type: DataTypes.BIGINT,
       autoIncrement: true,
       primaryKey: true,
     },
     user_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       allowNull: true,
     },
     username: {
@@ -44,7 +44,7 @@ const LogActivity = sequelize.define(
       defaultValue: 'success',
     },
     flag: {
-      type: DataTypes.TINYINT(1),
+      type: DataTypes.SMALLINT,
       defaultValue: 1,
     },
   },

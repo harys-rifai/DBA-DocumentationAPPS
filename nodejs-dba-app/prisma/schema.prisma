@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DbType {
+  mysql
+  redis
+  postgresql
+  mongodb
+  oracle
+  db2
+  edb
+  sqlserver
+  other
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique @db.VarChar(100)
+  password     String   @db.VarChar(255)
+  email        String?  @unique @db.VarChar(150)
+  fullName     String?  @db.VarChar(200)
+  active       Boolean  @default(true)
+  ipComp       String?  @db.VarChar(45)
+  lastLogin    DateTime?
+  roleId       Int?
+  flag         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  role         Role?           @relation(fields: [roleId], references: [id])
+  activities    LogActivity[]
+  dokumentasi   DokumentasiDB[]
+
+  @@map("users")
+}
+
+model Role {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique @db.VarChar(100)
+  description  String?
+  permissions  Json?
+  flag         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users        User[]
+
+  @@map("roles")
+}
+
+model LogActivity {
+  id           BigInt   @id @default(autoincrement())
+  userId       Int?
+  username     String?  @db.VarChar(100)
+  action       String   @db.VarChar(100)
+  module       String?  @db.VarChar(100)
+  description  String?
+  ipAddress    String?  @db.VarChar(45)
+  userAgent    String?  @db.VarChar(500)
+  status       String   @default("success") @db.VarChar(20)
+  flag         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@map("log_activities")
+}
+
+model DokumentasiDB {
+  id             Int      @id @default(autoincrement())
+  dbType         DbType
+  title          String   @db.VarChar(255)
+  tutorial       String?
+  summary        String?
+  rank           Int      @default(0)
+  tags           Json?
+  authorId       Int?
+  flag           Boolean  @default(true)
+  version        String?  @db.VarChar(50)
+  versionHistory Json?
+  aiGenerated   Boolean  @default(false) @map("ai_generated")
+  aiSource       String?  @db.VarChar(100)
+  lastAiUpdate   DateTime? @map("last_ai_update")
+  autoUpdate     Boolean  @default(true) @map("auto_update")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  author         User?    @relation(fields: [authorId], references: [id])
+
+  @@map("dokumentasi_db")
+}

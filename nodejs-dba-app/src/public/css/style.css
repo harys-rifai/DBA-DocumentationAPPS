@@ -380,6 +380,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .type-oracle     { background: rgba(255,80,0,.12); color: #FF5000; border: 1px solid rgba(255,80,0,.2); }
 .type-db2        { background: rgba(0,120,255,.12); color: #0078FF; border: 1px solid rgba(0,120,255,.2); }
 .type-edb        { background: rgba(0,180,120,.12); color: #00B478; border: 1px solid rgba(0,180,120,.2); }
+.type-sqlserver  { background: rgba(0,120,255,.12); color: #0078FF; border: 1px solid rgba(0,120,255,.2); }
+.type-mssql     { background: rgba(0,180,255,.12); color: #00B4FF; border: 1px solid rgba(0,180,255,.2); }
 .type-other      { background: rgba(255,140,0,.12); color: var(--orange); border: 1px solid rgba(255,140,0,.2); }
 .doc-rank { font-family: var(--font-mono); font-size: .7rem; color: var(--text-muted); }
 .doc-title { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .4rem; line-height: 1.3; }
@@ -583,4 +585,71 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   .menu-toggle { display: block; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr; }
+}
+
+/* ── VERSION BADGE ── */
+.version-badge {
+  display: inline-block;
+  padding: .15rem .45rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  color: var(--cyan);
+  letter-spacing: .04em;
+}
+
+/* ── AI BADGE ── */
+.ai-badge {
+  display: inline-block;
+  font-size: .85rem;
+  cursor: help;
+  filter: drop-shadow(0 0 4px rgba(157,78,221,.5));
+}
+
+/* ── VERSION HISTORY ── */
+.doc-version-history {
+  padding: 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+}
+.doc-version-history h4 {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  color: var(--text-dim);
+  letter-spacing: .08em;
+  margin-bottom: .75rem;
+}
+.version-history-item {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .78rem;
+}
+.version-history-item:last-child { border-bottom: none; }
+.version-number {
+  font-family: var(--font-mono);
+  color: var(--cyan);
+  font-size: .7rem;
+  font-weight: 600;
+  min-width: 60px;
+}
+.version-date {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  font-size: .68rem;
+  min-width: 120px;
+}
+.version-changes {
+  color: var(--text);
+  font-size: .75rem;
+  flex: 1;
+}
+
+/* ── PAGE ACTIONS UPDATE ── */
+.page-actions .btn-ghost {
+  margin-left: auto;
 }

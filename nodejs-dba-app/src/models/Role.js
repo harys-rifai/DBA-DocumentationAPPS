@@ -5,7 +5,7 @@ const Role = sequelize.define(
   'Role',
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
@@ -24,7 +24,7 @@ const Role = sequelize.define(
       comment: 'JSON array of permission strings',
     },
     flag: {
-      type: DataTypes.TINYINT(1),
+      type: DataTypes.SMALLINT,
       defaultValue: 1,
       comment: '1=active, 0=deleted',
     },

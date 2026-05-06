@@ -6,7 +6,7 @@ const User = sequelize.define(
   'User',
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
@@ -29,7 +29,7 @@ const User = sequelize.define(
       allowNull: true,
     },
     active: {
-      type: DataTypes.TINYINT(1),
+      type: DataTypes.SMALLINT,
       defaultValue: 1,
       comment: '1=active, 0=inactive',
     },
@@ -43,11 +43,11 @@ const User = sequelize.define(
       allowNull: true,
     },
     role_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       allowNull: true,
     },
     flag: {
-      type: DataTypes.TINYINT(1),
+      type: DataTypes.SMALLINT,
       defaultValue: 1,
       comment: '1=valid, 0=deleted',
     },

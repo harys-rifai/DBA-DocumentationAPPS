@@ -177,6 +177,7 @@
               <option value="oracle">Oracle</option>
               <option value="db2">IBM DB2</option>
               <option value="edb">EDB (EnterpriseDB)</option>
+              <option value="sqlserver">MS SQL Server</option>
               <option value="other">Other</option>
             </select>
           </div>
@@ -187,6 +188,7 @@
               <option value="50">50 / page</option>
             </select>
           </div>
+          <button class="btn-ghost" id="btnAiUpdateAll" onclick="aiUpdateAll()">🤖 AI Update All</button>
           <button class="btn-primary" id="btnNewDoc">+ New Doc</button>
         </div>
 
@@ -198,18 +200,20 @@
                 <th class="th-sort" data-col="id"        data-order="asc">#<span class="sort-icon">⇅</span></th>
                 <th class="th-sort" data-col="db_type"   data-order="asc">Type<span class="sort-icon">⇅</span></th>
                 <th class="th-sort" data-col="title"     data-order="asc">Title<span class="sort-icon">⇅</span></th>
+                <th>Version</th>
                 <th>Summary</th>
                 <th>Tags</th>
                 <th class="th-sort" data-col="rank"      data-order="asc">Rank<span class="sort-icon">⇅</span></th>
                 <th class="th-sort" data-col="createdAt" data-order="asc">Created<span class="sort-icon">⇅</span></th>
+                <th>AI</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="docsBody">
-              <tr><td colspan="8" class="loading-cell">
-                <div class="loading-dots"><span></span><span></span><span></span></div>
-              </td></tr>
-            </tbody>
+             <tbody id="docsBody">
+               <tr><td colspan="10" class="loading-cell">
+                 <div class="loading-dots"><span></span><span></span><span></span></div>
+               </td></tr>
+             </tbody>
           </table>
         </div>
 
@@ -331,6 +335,7 @@
               <option value="oracle">Oracle</option>
               <option value="db2">IBM DB2</option>
               <option value="edb">EDB (EnterpriseDB)</option>
+              <option value="sqlserver">MS SQL Server</option>
               <option value="other">Other</option>
             </select>
           </div>
@@ -407,23 +412,29 @@
     </div>
   </div>
 
-  <!-- ══ DOC DETAIL MODAL ══ -->
-  <div class="modal-overlay" id="docDetailModal">
-    <div class="modal modal-xl">
-      <div class="modal-header">
-        <div style="display:flex;align-items:center;gap:.75rem;flex:1;min-width:0">
-          <span id="docDetailBadge" class="doc-type-badge"></span>
-          <span id="docDetailTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
-        </div>
-        <div style="display:flex;gap:.5rem;flex-shrink:0">
-          <button class="btn-sm" id="docDetailEditBtn" style="display:none">Edit</button>
-          <button class="modal-close" onclick="closeModal('docDetailModal')">✕</button>
-        </div>
-      </div>
-      <div class="doc-detail-meta" id="docDetailMeta"></div>
-      <div class="doc-detail-content" id="docDetailContent"></div>
-    </div>
-  </div>
+       <!-- ══ DOC DETAIL MODAL ══ -->
+       <div class="modal-overlay" id="docDetailModal">
+         <div class="modal modal-xl">
+           <div class="modal-header">
+             <div style="display:flex;align-items:center;gap:.75rem;flex:1;min-width:0">
+               <span id="docDetailBadge" class="doc-type-badge"></span>
+               <span id="docDetailTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+               <span id="docDetailVersion" class="version-badge" style="display:none"></span>
+             </div>
+             <div style="display:flex;gap:.5rem;flex-shrink:0">
+               <button class="btn-sm" id="btnAiUpdateSingle" style="display:none" onclick="aiUpdateSingle()">🤖 AI Update</button>
+               <button class="btn-sm" id="docDetailEditBtn" style="display:none">Edit</button>
+               <button class="modal-close" onclick="closeModal('docDetailModal')">✕</button>
+             </div>
+           </div>
+           <div class="doc-detail-meta" id="docDetailMeta"></div>
+           <div class="doc-detail-content" id="docDetailContent"></div>
+           <div class="doc-version-history" id="docVersionHistory" style="display:none">
+             <h4>Version History</h4>
+             <div id="versionHistoryContent"></div>
+           </div>
+         </div>
+       </div>
 
   <!-- TOAST -->
   <div class="toast" id="toast"></div>

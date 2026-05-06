@@ -2,14 +2,17 @@ require('dotenv').config();
 const { Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
 
+const dialect = process.env.DB_DIALECT || 'mysql';
+
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
   process.env.DB_PASS,
   {
     host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT) || 3306,
-    dialect: 'mysql',
+    port: parseInt(process.env.DB_PORT) || (dialect === 'postgres' ? 5432 : 3306),
+    dialect: dialect,
+    schema: process.env.DB_SCHEMA || 'ai',
     logging: (msg) => logger.debug(msg),
     pool: {
       max: parseInt(process.env.DB_POOL_MAX) || 10,
@@ -27,11 +30,12 @@ const sequelize = new Sequelize(
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    logger.info('MySQL connection established successfully.');
+    logger.info(`${dialect.toUpperCase()} connection established successfully.`);
   } catch (error) {
-    logger.error('Unable to connect to MySQL:', error.message);
+    logger.error(`Unable to connect to ${dialect.toUpperCase()}:`, error.message);
     process.exit(1);
   }
 };
 
 module.exports = { sequelize, connectDB };
+
