@@ -272,17 +272,19 @@ async function loadDashboard() {
   }
 
   // System health panel
-  var healthEl = document.getElementById('systemHealth');
-  if (health) {
-    var mysqlOk = health.services && health.services.mysql === 'connected';
-    var rOk     = health.services && health.services.redis === 'connected';
-    healthEl.innerHTML =
-      '<div class="health-item"><span class="health-key">APP</span><span class="health-val ok">' + esc(health.app||'DBA App') + '</span></div>' +
-      '<div class="health-item"><span class="health-key">ENV</span><span class="health-val">' + esc(health.env||'—') + '</span></div>' +
-      '<div class="health-item"><span class="health-key">MySQL</span><span class="health-val ' + (mysqlOk?'ok':'err') + '">' + esc(health.services.mysql||'—') + '</span></div>' +
-      '<div class="health-item"><span class="health-key">Redis</span><span class="health-val ' + (rOk?'ok':'warn') + '">' + esc(health.services.redis||'—') + '</span></div>' +
-      '<div class="health-item"><span class="health-key">Time</span><span class="health-val ok">' + fmtTime(health.timestamp) + '</span></div>';
-  }
+    var healthEl = document.getElementById('systemHealth');
+    if (health) {
+      var pgOk  = health.services && health.services.postgresql === 'connected';
+      var rOk   = health.services && health.services.redis === 'connected';
+      var dbKey = Object.keys(health.services || {}).find(k => k !== 'redis') || 'postgresql';
+      var dbStatus = health.services ? health.services[dbKey] : '—';
+      healthEl.innerHTML =
+        '<div class="health-item"><span class="health-key">APP</span><span class="health-val ok">' + esc(health.app||'DBA App') + '</span></div>' +
+        '<div class="health-item"><span class="health-key">ENV</span><span class="health-val">' + esc(health.env||'—') + '</span></div>' +
+        '<div class="health-item"><span class="health-key">PostgreSQL</span><span class="health-val ' + (pgOk?'ok':'err') + '">' + esc(dbStatus) + '</span></div>' +
+        '<div class="health-item"><span class="health-key">Redis</span><span class="health-val ' + (rOk?'ok':'warn') + '">' + esc(health.services.redis||'—') + '</span></div>' +
+        '<div class="health-item"><span class="health-key">Checked</span><span class="health-val ok">' + fmtTime(health.timestamp) + '</span></div>';
+    }
 
   // Latest docs
   var latestDocsEl = document.getElementById('latestDocs');
@@ -567,18 +569,33 @@ function openDocModal(id) {
   document.getElementById('docId').value = id || '';
   document.getElementById('docModalTitle').textContent = id ? 'Edit Dokumentasi' : 'New Dokumentasi';
   document.getElementById('docForm').reset();
+  
   if (id) {
     api('GET', '/dokumentasi/' + id).then(function(res) {
       var d = res && res.data;
-      if (!d) return;
-      document.getElementById('docDbType').value   = d.db_type   || 'mysql';
-      document.getElementById('docRank').value     = d.rank      || 0;
-      document.getElementById('docTitle').value    = d.title     || '';
-      document.getElementById('docSummary').value  = d.summary   || '';
-      document.getElementById('docTutorial').value = d.tutorial  || d.tutor || '';
-      document.getElementById('docTags').value     = parseTags(d.tags).join(', ');
+      if (!d) {
+        toast('Failed to load document', 'error');
+        return;
+      }
+      // Populate form with existing data
+      var dbTypeEl = document.getElementById('docDbType');
+      var rankEl    = document.getElementById('docRank');
+      var titleEl   = document.getElementById('docTitle');
+      var summaryEl = document.getElementById('docSummary');
+      var tutorialEl = document.getElementById('docTutorial');
+      var tagsEl     = document.getElementById('docTags');
+      
+      if (dbTypeEl) dbTypeEl.value   = d.db_type   || 'mysql';
+      if (rankEl)    rankEl.value     = d.rank      || 0;
+      if (titleEl)   titleEl.value    = d.title     || '';
+      if (summaryEl) summaryEl.value  = d.summary   || '';
+      if (tutorialEl) tutorialEl.value = d.tutorial  || d.tutor || '';
+      if (tagsEl)     tagsEl.value     = parseTags(d.tags).join(', ');
+    }).catch(function() {
+      toast('Failed to load document', 'error');
     });
   }
+  
   openModal('docModal');
 }
 

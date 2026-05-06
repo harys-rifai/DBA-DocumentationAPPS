@@ -1,10 +1,13 @@
-#!/bin/bash
-# ============================================================
-# run.sh - Start the Node.js DBA App
-# Usage: ./run.sh [dev|prod|migrate|seed]
-# ============================================================
+#!/bin/zsh
+# ==========================================================
+# run.sh - Start the Bun + Prisma + PostgreSQL DBA App
+# Usage: ./run.sh [dev|prod|migrate|seed|setup]
+# ==========================================================
 
 set -euo pipefail
+
+# Load zsh environment
+source ~/.zshrc 2>/dev/null || true
 
 APP_DIR="$(cd "$(dirname "$0")/nodejs-dba-app" && pwd)"
 
@@ -13,14 +16,24 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-log_info()  { echo -e "${GREEN}[INFO]${NC}  $1"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
+log_info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# Add Bun to PATH
+export PATH="$HOME/.bun/bin:$PATH"
+
+# Check Bun
+if ! command -v bun &> /dev/null; then
+  log_error "Bun is not installed. Please install it first:"
+  echo "  curl -fsSL https://bun.sh/install | bash"
+  exit 1
+fi
 
 # Check node_modules
 if [ ! -d "${APP_DIR}/node_modules" ]; then
-  log_warn "node_modules not found. Running npm install..."
-  npm install --prefix "${APP_DIR}"
+  log_warn "node_modules not found. Running bun install..."
+  bun install --prefix "${APP_DIR}"
 fi
 
 # Check .env
@@ -35,40 +48,39 @@ MODE="${1:-dev}"
 
 case "$MODE" in
   dev)
-    log_info "Starting in DEVELOPMENT mode (nodemon)..."
-    npm run dev --prefix "${APP_DIR}"
+    log_info "Starting in DEVELOPMENT mode (Bun --hot)..."
+    cd "${APP_DIR}" && bun --hot src/app.js
     ;;
 
   prod)
     log_info "Starting in PRODUCTION mode..."
-    npm start --prefix "${APP_DIR}"
+    cd "${APP_DIR}" && bun run start
     ;;
 
   migrate)
     log_info "Running database migrations..."
-    npm run migrate --prefix "${APP_DIR}"
+    cd "${APP_DIR}" && bun run prisma:migrate
     log_info "Migration complete."
     ;;
 
   seed)
     log_info "Running database seed..."
-    npm run seed --prefix "${APP_DIR}"
+    cd "${APP_DIR}" && bun run prisma:seed
     log_info "Seed complete."
     ;;
 
   setup)
     log_info "Running full setup: migrate + seed..."
-    npm run migrate --prefix "${APP_DIR}"
-    npm run seed --prefix "${APP_DIR}"
+    cd "${APP_DIR}" && bun run prisma:migrate && bun run prisma:seed
     log_info "Setup complete. Run './run.sh dev' to start the app."
     ;;
 
   *)
     echo "Usage: $0 {dev|prod|migrate|seed|setup}"
     echo ""
-    echo "  dev      - Start with nodemon (auto-reload)"
+    echo "  dev      - Start with Bun --hot (auto-reload)"
     echo "  prod     - Start in production mode"
-    echo "  migrate  - Run database migrations"
+    echo "  migrate  - Run Prisma database migrations"
     echo "  seed     - Seed initial data"
     echo "  setup    - Run migrate + seed"
     exit 1
