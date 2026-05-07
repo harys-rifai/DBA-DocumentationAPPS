@@ -1,4 +1,5 @@
 const { LogActivity } = require('../models/index');
+const { delCacheByPattern } = require('../config/redis');
 const logger = require('../utils/logger');
 
 /**
@@ -22,6 +23,13 @@ const logActivity = async (req, action, module, description = '', status = 'succ
     });
   } catch (err) {
     logger.error('Failed to log activity:', err.message);
+    return; // Don't proceed to cache invalidation if log failed
+  }
+  // Invalidate logs list cache to ensure fresh data (especially for notification badges)
+  try {
+    await delCacheByPattern('logs:list:*');
+  } catch (err) {
+    logger.error('Failed to invalidate logs cache:', err.message);
   }
 };
 

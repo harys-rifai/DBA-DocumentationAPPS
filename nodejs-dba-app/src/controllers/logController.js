@@ -1,4 +1,5 @@
 const { LogActivity, User } = require('../models/index');
+const { Op } = require('sequelize');
 const { getCache, setCache } = require('../config/redis');
 const { success } = require('../utils/response');
 const logger = require('../utils/logger');
@@ -13,8 +14,9 @@ const getAll = async (req, res) => {
     const offset = (page - 1) * limit;
     const action = req.query.action || null;
     const module = req.query.module || null;
+    const since = req.query.since || null; // timestamp in milliseconds
 
-    const cacheKey = `logs:list:${page}:${limit}:${action || 'all'}:${module || 'all'}`;
+    const cacheKey = `logs:list:${page}:${limit}:${action || 'all'}:${module || 'all'}:${since || 'none'}`;
 
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -25,6 +27,14 @@ const getAll = async (req, res) => {
     const where = {};
     if (action) where.action = action;
     if (module) where.module = module;
+    if (since) {
+      // since is expected in milliseconds (Unix timestamp)
+      const sinceNum = parseInt(since, 10);
+      if (!isNaN(sinceNum)) {
+        const sinceDate = new Date(sinceNum);
+        where.created_at = { [Op.gte]: sinceDate };
+      }
+    }
 
     const { count, rows } = await LogActivity.findAndCountAll({
       where,

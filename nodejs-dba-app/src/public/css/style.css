@@ -144,6 +144,36 @@ body {
   border-left: 2px solid transparent;
   transition: all .15s;
   cursor: pointer;
+  position: relative;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--red);
+  color: white;
+  font-size: .65rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 0 6px rgba(255, 68, 68, .4);
+  animation: badgePulse 1.5s infinite;
+}
+
+@keyframes badgePulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(255, 68, 68, .4);
+  }
+
+  50% {
+    box-shadow: 0 0 10px rgba(255, 68, 68, .7);
+  }
 }
 
 .nav-item:hover {
@@ -582,6 +612,11 @@ body {
   border-radius: var(--radius);
   overflow: hidden;
   transition: transform .15s, box-shadow .15s;
+}
+
+.panel:hover {
+  box-shadow: var(--glow-cyan);
+  transform: translateY(-2px);
 }
 
 .panel-header {

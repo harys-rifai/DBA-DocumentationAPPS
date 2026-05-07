@@ -266,4 +266,24 @@ const toggleAutoUpdate = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, create, update, remove, aiUpdateAll, aiUpdateSingle, getDbTypes, toggleAutoUpdate };
+/**
+ * POST /api/dokumentasi/ai-generate
+ * Generate new dokumentasi using AI
+ */
+const aiGenerateNew = async (req, res) => {
+  try {
+    const { db_type, title } = req.body;
+    if (!db_type || !title) {
+      return badRequest(res, 'db_type and title are required');
+    }
+    const doc = await aiGenerateNewDoc(db_type, title, req);
+    await delCacheByPattern(`${CACHE_PREFIX}:list:*`);
+    await logActivity(req, 'CREATE', 'dokumentasi', `AI Generated: ${title}`);
+    return created(res, doc, 'Documentation generated successfully');
+  } catch (err) {
+    logger.error('AI generate new error:', err.message);
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+module.exports = { getAll, getById, create, update, remove, aiUpdateAll, aiUpdateSingle, getDbTypes, toggleAutoUpdate, aiGenerateNew };

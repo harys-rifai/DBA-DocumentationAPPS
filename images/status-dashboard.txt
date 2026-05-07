@@ -1,0 +1,25 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║                    DBA MANAGEMENT APP                         ║
+║                      Status Dashboard                         ║
+╠═══════════════════════════════════════════════════════════╣
+║  App Name:    nodejs-dba-app                                ║
+║  Version:      v1.0.2                                       ║
+║  Environment:  prod                                         ║
+║  Runtime:      Bun v24.3.0                                  ║
+║  Port:         3000                                         ║
+╠═══════════════════════════════════════════════════════════╣
+║  SERVICES                                                     ║
+║  ├─ PostgreSQL:  [CONNECTED]                                ║
+║  └─ Redis:       [CONNECTED]                                ║
+╠═══════════════════════════════════════════════════════════╣
+║  DATABASE TYPES SUPPORTED                                     ║
+║  ├─ MySQL        v8.0.36                                    ║
+║  ├─ PostgreSQL   v16.2                                      ║
+║  ├─ Redis        v7.2.4                                     ║
+║  ├─ MongoDB      v7.0.6                                     ║
+║  ├─ Oracle       v21c                                       ║
+║  ├─ SQL Server   v2022                                      ║
+║  ├─ EDB          v16.2                                      ║
+║  └─ IBM DB2      v11.5                                      ║
+╚═══════════════════════════════════════════════════════════╝
+

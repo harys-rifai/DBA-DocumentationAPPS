@@ -1,0 +1,42 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║                     API ENDPOINTS                                 ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  HEALTH & INFO                                                     ║
+║  ├─ GET  /health                    → Health check                 ║
+║  └─ GET  /                          → App homepage                 ║
+║                                                                   ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  AUTHENTICATION                                                    ║
+║  ├─ POST /api/auth/login           → Login (get JWT token)         ║
+║  ├─ POST /api/auth/logout          → Logout                        ║
+║  └─ GET  /api/auth/me              → Get current user info         ║
+║                                                                   ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  USERS (Protected)                                                 ║
+║  ├─ GET    /api/users              → List users (paginated)        ║
+║  ├─ GET    /api/users/:id          → Get user detail               ║
+║  ├─ POST   /api/users              → Create new user               ║
+║  ├─ PUT    /api/users/:id          → Update user                   ║
+║  └─ DELETE /api/users/:id          → Soft delete user              ║
+║                                                                   ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  DOCUMENTATION (Handbook)                                          ║
+║  ├─ GET    /api/dokumentasi        → List docs (filter/search)     ║
+║  ├─ GET    /api/dokumentasi/:id    → Get doc detail                ║
+║  ├─ POST   /api/dokumentasi        → Create doc (protected)         ║
+║  ├─ PUT    /api/dokumentasi/:id    → Update doc (protected)         ║
+║  ├─ DELETE /api/dokumentasi/:id    → Delete doc (protected)         ║
+║  ├─ GET    /api/dokumentasi/db-types                              ║
+║  │                               → List supported DB types        ║
+║  ├─ GET    /api/dokumentasi/grep?q=→ Full-text search             ║
+║  ├─ POST   /api/dokumentasi/ai-update/all                         ║
+║  │                               → AI update all handbooks        ║
+║  └─ POST   /api/dokumentasi/ai-update/:dbType                     ║
+║                                  → AI update specific handbook    ║
+║                                                                   ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  TROUBLESHOOT                                                      ║
+║  └─ POST /api/troubleshoot         → AI-powered troubleshooting    ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝

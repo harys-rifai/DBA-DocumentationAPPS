@@ -7,7 +7,7 @@
 // ─── State ────────────────────────────────────────────────
 const STATE = {
   token: localStorage.getItem('dba_token') || null,
-  user:  JSON.parse(localStorage.getItem('dba_user') || 'null'),
+  user: JSON.parse(localStorage.getItem('dba_user') || 'null'),
   currentPage: 'dashboard',
   docsAll: [], usersAll: [], logsAll: [],
 };
@@ -18,7 +18,7 @@ async function api(method, path, body) {
   if (STATE.token) opts.headers['Authorization'] = 'Bearer ' + STATE.token;
   if (body) opts.body = JSON.stringify(body);
   try {
-    const res  = await fetch('/api' + path, opts);
+    const res = await fetch('/api' + path, opts);
     const data = await res.json();
     if (res.status === 401) { doLogout(); return null; }
     return data;
@@ -35,13 +35,13 @@ function toast(msg, type) {
   el.textContent = msg;
   el.className = 'toast show ' + type;
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
+  _toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3000);
 }
 
 // ─── Auth Gate ────────────────────────────────────────────
 function showApp() {
   document.getElementById('sidebar').style.display = 'flex';
-  document.getElementById('topbar').style.display  = 'flex';
+  document.getElementById('topbar').style.display = 'flex';
   document.getElementById('mainContent').style.marginLeft = 'var(--sidebar-w)';
   document.getElementById('page-login').classList.remove('active');
   // hide loading screen if present
@@ -49,20 +49,22 @@ function showApp() {
   if (loadingEl) loadingEl.style.display = 'none';
   var name = (STATE.user && STATE.user.username) ? STATE.user.username : '?';
   document.getElementById('sidebarUser').textContent = name;
-  document.getElementById('topbarUser').textContent  = name;
+  document.getElementById('topbarUser').textContent = name;
   document.getElementById('userChip').querySelector('.user-avatar').textContent =
     name.charAt(0).toUpperCase();
+  // Refresh notification badge
+  refreshDocBadge();
   navigate('dashboard');
 }
 
 function showLogin() {
   document.getElementById('sidebar').style.display = 'none';
-  document.getElementById('topbar').style.display  = 'none';
+  document.getElementById('topbar').style.display = 'none';
   document.getElementById('mainContent').style.marginLeft = '0';
   // hide loading screen if present
   var loadingEl = document.getElementById('appLoading');
   if (loadingEl) loadingEl.style.display = 'none';
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
   document.getElementById('page-login').classList.add('active');
   document.getElementById('loginError').textContent = '';
   document.getElementById('loginUsername').value = '';
@@ -70,10 +72,10 @@ function showLogin() {
 }
 
 // ─── Login ────────────────────────────────────────────────
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
   e.preventDefault();
-  var btn      = document.getElementById('loginBtn');
-  var errEl    = document.getElementById('loginError');
+  var btn = document.getElementById('loginBtn');
+  var errEl = document.getElementById('loginError');
   var username = document.getElementById('loginUsername').value.trim();
   var password = document.getElementById('loginPassword').value;
 
@@ -82,7 +84,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     return;
   }
 
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'AUTHENTICATING...';
   errEl.textContent = '';
 
@@ -96,9 +98,9 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 
     if (data.status === 'success' && data.data && data.data.token) {
       STATE.token = data.data.token;
-      STATE.user  = data.data.user;
+      STATE.user = data.data.user;
       localStorage.setItem('dba_token', STATE.token);
-      localStorage.setItem('dba_user',  JSON.stringify(STATE.user));
+      localStorage.setItem('dba_user', JSON.stringify(STATE.user));
       showApp();
       toast('Welcome back, ' + STATE.user.username + '!', 'success');
     } else {
@@ -107,7 +109,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
   } catch (err) {
     errEl.textContent = 'Connection error. Is the server running?';
   } finally {
-    btn.disabled    = false;
+    btn.disabled = false;
     btn.textContent = 'AUTHENTICATE';
   }
 });
@@ -118,17 +120,17 @@ async function doLogout() {
     await fetch('/api/auth/logout', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + STATE.token },
-    }).catch(function() {});
+    }).catch(function () { });
   }
   STATE.token = null;
-  STATE.user  = null;
+  STATE.user = null;
   localStorage.removeItem('dba_token');
   localStorage.removeItem('dba_user');
   showLogin();
   toast('Logged out.', 'info');
 }
 
-document.getElementById('logoutBtn').addEventListener('click', function(e) {
+document.getElementById('logoutBtn').addEventListener('click', function (e) {
   e.preventDefault();
   doLogout();
 });
@@ -164,20 +166,61 @@ function userRole() {
   if (typeof r === 'object' && r.name) return r.name;
   return String(r);
 }
-function isAdmin()   { return userRole() === 'admin'; }
-function canEdit()   { var r = userRole(); return r === 'admin' || r === 'dba'; }
+function isAdmin() { return userRole() === 'admin'; }
+function canEdit() { var r = userRole(); return r === 'admin' || r === 'dba'; }
+
+// ─── Notification Badge for Documentation Activities ─────────────
+async function fetchDocNotificationCount() {
+  const lastSeen = localStorage.getItem('lastDokumentasiSeen') || 0;
+  const res = await api('GET', '/logs?module=dokumentasi&limit=1&since=' + lastSeen);
+  if (!res) return 0;
+
+  // Handle both cached format (raw result) and API response (wrapped)
+  // Cached: { total, page, limit, totalPages, data: [...] }
+  // API: { status: 'success', data: { total, ... } }
+  if (res.status === 'success' && res.data) {
+    return res.data.total || 0;
+  } else if (res.total !== undefined) {
+    // Cached format - res itself is the result object
+    return res.total || 0;
+  }
+  return 0;
+}
+
+function updateDocBadge(count) {
+  const badge = document.getElementById('docNotifBadge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function refreshDocBadge() {
+  // Only admin and dba can view logs and thus see notifications
+  var r = userRole();
+  if (r !== 'admin' && r !== 'dba') {
+    updateDocBadge(0);
+    return;
+  }
+  const count = await fetchDocNotificationCount();
+  updateDocBadge(count);
+}
+
 var PAGE_TITLES = {
-  dashboard:   'Overview',
+  dashboard: 'Overview',
   dokumentasi: 'Runbook AI',
-  users:       'Users',
-  logs:        'Activity Logs',
-  monitoring:  'Monitoring',
+  users: 'Users',
+  logs: 'Activity Logs',
+  monitoring: 'Monitoring',
 };
 
 function navigate(page) {
   STATE.currentPage = page;
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
 
   var pageEl = document.getElementById('page-' + page);
   if (pageEl) pageEl.classList.add('active');
@@ -187,29 +230,34 @@ function navigate(page) {
 
   document.getElementById('pageTitle').textContent = PAGE_TITLES[page] || page;
 
-  if (page === 'dashboard')   loadDashboard();
-  if (page === 'dokumentasi') { initDocsToolbar(); loadDocs(); }
-  if (page === 'users')       loadUsers();
-  if (page === 'logs')        loadLogs();
-  if (page === 'monitoring')  loadMonitoring();
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'dokumentasi') {
+    // Mark documentation as seen - clear notification badge
+    localStorage.setItem('lastDokumentasiSeen', Date.now());
+    updateDocBadge(0);
+    initDocsToolbar(); loadDocs();
+  }
+  if (page === 'users') loadUsers();
+  if (page === 'logs') loadLogs();
+  if (page === 'monitoring') loadMonitoring();
 }
 
-document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
-  el.addEventListener('click', function(e) {
+document.querySelectorAll('.nav-item[data-page]').forEach(function (el) {
+  el.addEventListener('click', function (e) {
     e.preventDefault();
     var page = el.dataset.page;
     if (page) navigate(page);
   });
 });
 
-document.getElementById('menuToggle').addEventListener('click', function() {
+document.getElementById('menuToggle').addEventListener('click', function () {
   document.getElementById('sidebar').classList.toggle('open');
 });
 
 // ─── Health Check ─────────────────────────────────────────
 async function checkHealth() {
   try {
-    var res  = await fetch('/health');
+    var res = await fetch('/health');
     var data = await res.json();
     var badge = document.getElementById('healthBadge');
     if (data.status === 'ok') {
@@ -238,8 +286,8 @@ async function loadDashboard() {
     api('GET', '/logs?limit=8'),
   ]);
   var usersRes = results[0];
-  var docsRes  = results[1];
-  var logsRes  = results[2];
+  var docsRes = results[1];
+  var logsRes = results[2];
 
   document.getElementById('statUsers').textContent = extractTotal(usersRes) || '—';
 
@@ -255,36 +303,36 @@ async function loadDashboard() {
 
   // Recent activity
   var actEl = document.getElementById('recentActivity');
-  var acts  = allLogs.slice(0, 8);
+  var acts = allLogs.slice(0, 8);
   if (!acts.length) {
     actEl.innerHTML = '<p style="color:var(--text-muted);font-size:.78rem;text-align:center;padding:1rem">No activity yet</p>';
   } else {
-    actEl.innerHTML = acts.map(function(a) {
+    actEl.innerHTML = acts.map(function (a) {
       return '<div class="activity-item">' +
-        '<span class="activity-badge badge-' + (a.action||'') + '">' + esc(a.action||'') + '</span>' +
+        '<span class="activity-badge badge-' + (a.action || '') + '">' + esc(a.action || '') + '</span>' +
         '<div class="activity-meta">' +
-          '<div class="activity-user">' + esc(a.username || String(a.user_id||'—')) + '</div>' +
-          '<div class="activity-desc">' + esc(a.description || a.module || '') + '</div>' +
+        '<div class="activity-user">' + esc(a.username || String(a.user_id || '—')) + '</div>' +
+        '<div class="activity-desc">' + esc(a.description || a.module || '') + '</div>' +
         '</div>' +
         '<span class="activity-time">' + fmtTime(a.created_at) + '</span>' +
-      '</div>';
+        '</div>';
     }).join('');
   }
 
   // System health panel
-    var healthEl = document.getElementById('systemHealth');
-    if (health) {
-      var pgOk  = health.services && health.services.postgresql === 'connected';
-      var rOk   = health.services && health.services.redis === 'connected';
-      var dbKey = Object.keys(health.services || {}).find(k => k !== 'redis') || 'postgresql';
-      var dbStatus = health.services ? health.services[dbKey] : '—';
-      healthEl.innerHTML =
-        '<div class="health-item"><span class="health-key">APP</span><span class="health-val ok">' + esc(health.app||'DBA App') + '</span></div>' +
-        '<div class="health-item"><span class="health-key">ENV</span><span class="health-val">' + esc(health.env||'—') + '</span></div>' +
-        '<div class="health-item"><span class="health-key">PostgreSQL</span><span class="health-val ' + (pgOk?'ok':'err') + '">' + esc(dbStatus) + '</span></div>' +
-        '<div class="health-item"><span class="health-key">Redis</span><span class="health-val ' + (rOk?'ok':'warn') + '">' + esc(health.services.redis||'—') + '</span></div>' +
-        '<div class="health-item"><span class="health-key">Checked</span><span class="health-val ok">' + fmtTime(health.timestamp) + '</span></div>';
-    }
+  var healthEl = document.getElementById('systemHealth');
+  if (health) {
+    var pgOk = health.services && health.services.postgresql === 'connected';
+    var rOk = health.services && health.services.redis === 'connected';
+    var dbKey = Object.keys(health.services || {}).find(k => k !== 'redis') || 'postgresql';
+    var dbStatus = health.services ? health.services[dbKey] : '—';
+    healthEl.innerHTML =
+      '<div class="health-item"><span class="health-key">APP</span><span class="health-val ok">' + esc(health.app || 'DBA App') + '</span></div>' +
+      '<div class="health-item"><span class="health-key">ENV</span><span class="health-val">' + esc(health.env || '—') + '</span></div>' +
+      '<div class="health-item"><span class="health-key">PostgreSQL</span><span class="health-val ' + (pgOk ? 'ok' : 'err') + '">' + esc(dbStatus) + '</span></div>' +
+      '<div class="health-item"><span class="health-key">Redis</span><span class="health-val ' + (rOk ? 'ok' : 'warn') + '">' + esc(health.services.redis || '—') + '</span></div>' +
+      '<div class="health-item"><span class="health-key">Checked</span><span class="health-val ok">' + fmtTime(health.timestamp) + '</span></div>';
+  }
 
   // Latest docs
   var latestDocsEl = document.getElementById('latestDocs');
@@ -292,12 +340,12 @@ async function loadDashboard() {
   if (!topDocs.length) {
     latestDocsEl.innerHTML = '<p style="color:var(--text-muted);font-size:.78rem;text-align:center;padding:1rem">No docs yet</p>';
   } else {
-    latestDocsEl.innerHTML = topDocs.map(function(d) {
+    latestDocsEl.innerHTML = topDocs.map(function (d) {
       return '<div class="mini-doc-row" onclick="openDocDetail(' + d.id + ')">' +
         '<span class="doc-type-badge type-' + esc(d.dbType) + ' mini-doc-type">' + esc(d.dbType) + '</span>' +
         '<span class="mini-doc-title">' + esc(d.title) + '</span>' +
-        '<span style="color:var(--text-muted);font-size:.7rem;font-family:var(--font-mono)">#' + (d.rank||0) + '</span>' +
-      '</div>';
+        '<span style="color:var(--text-muted);font-size:.7rem;font-family:var(--font-mono)">#' + (d.rank || 0) + '</span>' +
+        '</div>';
     }).join('');
   }
 }
@@ -312,25 +360,25 @@ var DOCS_STATE = {
 
 // Wire up toolbar controls once DOM is ready
 function initDocsToolbar() {
-  var searchEl  = document.getElementById('docsSearch');
-  var filterEl  = document.getElementById('docsFilter');
+  var searchEl = document.getElementById('docsSearch');
+  var filterEl = document.getElementById('docsFilter');
   var perPageEl = document.getElementById('docsPerPage');
-  var newBtn    = document.getElementById('btnNewDoc');
+  var newBtn = document.getElementById('btnNewDoc');
 
   if (searchEl && !searchEl._wired) {
     searchEl._wired = true;
-    searchEl.addEventListener('input', function() {
+    searchEl.addEventListener('input', function () {
       clearTimeout(DOCS_STATE._searchTimer);
-      DOCS_STATE._searchTimer = setTimeout(function() {
+      DOCS_STATE._searchTimer = setTimeout(function () {
         DOCS_STATE.search = searchEl.value.trim();
-        DOCS_STATE.page   = 1;
+        DOCS_STATE.page = 1;
         loadDocs();
       }, 350);
     });
   }
   if (filterEl && !filterEl._wired) {
     filterEl._wired = true;
-    filterEl.addEventListener('change', function() {
+    filterEl.addEventListener('change', function () {
       DOCS_STATE.type = filterEl.value;
       DOCS_STATE.page = 1;
       loadDocs();
@@ -338,27 +386,27 @@ function initDocsToolbar() {
   }
   if (perPageEl && !perPageEl._wired) {
     perPageEl._wired = true;
-    perPageEl.addEventListener('change', function() {
+    perPageEl.addEventListener('change', function () {
       DOCS_STATE.limit = parseInt(perPageEl.value) || 10;
-      DOCS_STATE.page  = 1;
+      DOCS_STATE.page = 1;
       loadDocs();
     });
   }
   if (newBtn && !newBtn._wired) {
     newBtn._wired = true;
-    newBtn.addEventListener('click', function() { openDocModal(); });
+    newBtn.addEventListener('click', function () { openDocModal(); });
   }
 
   // Sortable column headers
-  document.querySelectorAll('#docsTable .th-sort').forEach(function(th) {
+  document.querySelectorAll('#docsTable .th-sort').forEach(function (th) {
     if (th._wired) return;
     th._wired = true;
-    th.addEventListener('click', function() {
+    th.addEventListener('click', function () {
       var col = th.dataset.col;
       if (DOCS_STATE.sort === col) {
         DOCS_STATE.order = DOCS_STATE.order === 'asc' ? 'desc' : 'asc';
       } else {
-        DOCS_STATE.sort  = col;
+        DOCS_STATE.sort = col;
         DOCS_STATE.order = 'asc';
       }
       DOCS_STATE.page = 1;
@@ -369,7 +417,7 @@ function initDocsToolbar() {
 }
 
 function updateSortHeaders() {
-  document.querySelectorAll('#docsTable .th-sort').forEach(function(th) {
+  document.querySelectorAll('#docsTable .th-sort').forEach(function (th) {
     th.classList.remove('active');
     var icon = th.querySelector('.sort-icon');
     if (icon) icon.textContent = '⇅';
@@ -385,11 +433,11 @@ async function loadDocs() {
   tbody.innerHTML = '<tr><td colspan="8" class="loading-cell"><div class="loading-dots"><span></span><span></span><span></span></div></td></tr>';
 
   var qs = '?page=' + DOCS_STATE.page +
-           '&limit=' + DOCS_STATE.limit +
-           '&sort='  + DOCS_STATE.sort +
-           '&order=' + DOCS_STATE.order;
+    '&limit=' + DOCS_STATE.limit +
+    '&sort=' + DOCS_STATE.sort +
+    '&order=' + DOCS_STATE.order;
   if (DOCS_STATE.search) qs += '&search=' + encodeURIComponent(DOCS_STATE.search);
-  if (DOCS_STATE.type)   qs += '&db_type=' + encodeURIComponent(DOCS_STATE.type);
+  if (DOCS_STATE.type) qs += '&db_type=' + encodeURIComponent(DOCS_STATE.type);
 
   var res = await api('GET', '/dokumentasi' + qs);
   if (!res || !res.data) {
@@ -399,7 +447,7 @@ async function loadDocs() {
 
   var meta = res.data;
   var rows = meta.data || [];
-  DOCS_STATE.total      = meta.total      || 0;
+  DOCS_STATE.total = meta.total || 0;
   DOCS_STATE.totalPages = meta.totalPages || 1;
 
   renderDocsTable(rows);
@@ -409,7 +457,7 @@ async function loadDocs() {
   var infoEl = document.getElementById('docsInfo');
   if (infoEl) {
     var from = ((DOCS_STATE.page - 1) * DOCS_STATE.limit) + 1;
-    var to   = Math.min(DOCS_STATE.page * DOCS_STATE.limit, DOCS_STATE.total);
+    var to = Math.min(DOCS_STATE.page * DOCS_STATE.limit, DOCS_STATE.total);
     infoEl.textContent = DOCS_STATE.total
       ? 'Showing ' + from + '–' + to + ' of ' + DOCS_STATE.total + ' records'
       : 'No records found';
@@ -417,7 +465,7 @@ async function loadDocs() {
 }
 
 function renderDocsTable(rows) {
-  var tbody   = document.getElementById('docsBody');
+  var tbody = document.getElementById('docsBody');
   var _canEdit = canEdit();
   var _isAdmin = isAdmin();
 
@@ -426,14 +474,14 @@ function renderDocsTable(rows) {
     return;
   }
 
-  tbody.innerHTML = rows.map(function(d) {
-    var tags    = parseTags(d.tags);
-    var tagHtml = tags.slice(0, 3).map(function(t) {
+  tbody.innerHTML = rows.map(function (d) {
+    var tags = parseTags(d.tags);
+    var tagHtml = tags.slice(0, 3).map(function (t) {
       return '<span class="doc-tag">' + esc(t) + '</span>';
     }).join('') + (tags.length > 3 ? '<span class="doc-tag">+' + (tags.length - 3) + '</span>' : '');
 
     var versionBadge = d.version ? '<span class="version-badge">' + esc(d.version) + '</span>' : '—';
-    var aiBadge = d.aiGenerated ? '<span class="ai-badge" title="AI Generated: ' + esc(d.aiSource||'') + '">🤖</span>' : '';
+    var aiBadge = d.aiGenerated ? '<span class="ai-badge" title="AI Generated: ' + esc(d.aiSource || '') + '">🤖</span>' : '';
     var autoUpdateIcon = d.autoUpdate !== 0 ? '<span style="color:var(--green);font-size:.7rem" title="Auto-update enabled">↻</span>' : '';
 
     return '<tr>' +
@@ -447,11 +495,11 @@ function renderDocsTable(rows) {
       '<td class="td-mono">' + fmtDate(d.createdAt) + '</td>' +
       '<td style="text-align:center">' + aiBadge + ' ' + autoUpdateIcon + '</td>' +
       '<td><div class="td-actions">' +
-        '<button class="btn-sm" onclick="openDocDetail(' + d.id + ')">View</button>' +
-        (_canEdit ? '<button class="btn-sm" onclick="openDocModal(' + d.id + ')">Edit</button>' : '') +
-        (_isAdmin ? '<button class="btn-danger" onclick="deleteDoc(' + d.id + ')">Del</button>' : '') +
+      '<button class="btn-sm" onclick="openDocDetail(' + d.id + ')">View</button>' +
+      (_canEdit ? '<button class="btn-sm" onclick="openDocModal(' + d.id + ')">Edit</button>' : '') +
+      (_isAdmin ? '<button class="btn-danger" onclick="deleteDoc(' + d.id + ')">Del</button>' : '') +
       '</div></td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 }
 
@@ -459,7 +507,7 @@ function renderDocsPagination() {
   var el = document.getElementById('docsPagination');
   if (!el) return;
   var total = DOCS_STATE.totalPages;
-  var cur   = DOCS_STATE.page;
+  var cur = DOCS_STATE.page;
 
   // ── Prev / Next buttons ──────────────────────────────────
   var prevBtn = document.getElementById('docsPrevBtn');
@@ -471,13 +519,13 @@ function renderDocsPagination() {
   if (total <= 1) { el.innerHTML = ''; return; }
 
   var show = {};
-  [1, total].forEach(function(p) { show[p] = true; });
+  [1, total].forEach(function (p) { show[p] = true; });
   for (var i = Math.max(1, cur - 2); i <= Math.min(total, cur + 2); i++) show[i] = true;
 
-  var sorted = Object.keys(show).map(Number).sort(function(a,b){return a-b;});
+  var sorted = Object.keys(show).map(Number).sort(function (a, b) { return a - b; });
   var html = '';
   var prev = 0;
-  sorted.forEach(function(p) {
+  sorted.forEach(function (p) {
     if (prev && p - prev > 1) html += '<span style="color:var(--text-muted);padding:0 .3rem">…</span>';
     html += '<button class="page-btn' + (p === cur ? ' active' : '') + '" onclick="docsGoPage(' + p + ')">' + p + '</button>';
     prev = p;
@@ -495,20 +543,20 @@ function docsGoPage(p) {
 async function openDocDetail(id) {
   currentDetailDocId = id;
   var res = await api('GET', '/dokumentasi/' + id);
-  var d   = res && res.data;
+  var d = res && res.data;
   if (!d) return;
 
   var _canEdit = canEdit();
-  var badge   = document.getElementById('docDetailBadge');
+  var badge = document.getElementById('docDetailBadge');
   var editBtn = document.getElementById('docDetailEditBtn');
-  var aiBtn   = document.getElementById('btnAiUpdateSingle');
+  var aiBtn = document.getElementById('btnAiUpdateSingle');
   var versionBadge = document.getElementById('docDetailVersion');
 
   document.getElementById('docDetailTitle').textContent = d.title || '—';
   if (badge) { badge.className = 'doc-type-badge type-' + esc(d.dbType); badge.textContent = d.dbType; }
   if (editBtn) {
     editBtn.style.display = _canEdit ? 'inline-block' : 'none';
-    editBtn.onclick = function() { closeModal('docDetailModal'); openDocModal(id); };
+    editBtn.onclick = function () { closeModal('docDetailModal'); openDocModal(id); };
   }
   if (aiBtn) {
     aiBtn.style.display = _canEdit ? 'inline-block' : 'none';
@@ -524,9 +572,9 @@ async function openDocDetail(id) {
   }
 
   var tags = parseTags(d.tags);
-  var metaHtml = '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">Rank #' + (d.rank||0) + '</span>' +
+  var metaHtml = '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">Rank #' + (d.rank || 0) + '</span>' +
     '<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:.7rem">ID: ' + d.id + '</span>';
-  
+
   if (d.version) {
     metaHtml += '<span class="version-badge" style="font-size:.7rem">v' + esc(d.version) + '</span>';
   }
@@ -536,31 +584,31 @@ async function openDocDetail(id) {
   if (d.autoUpdate !== 0) {
     metaHtml += '<span style="color:var(--green);font-size:.7rem">↻ Auto-update ON</span>';
   }
-  
+
   metaHtml += (d.summary ? '<span style="color:var(--text-dim);font-size:.78rem">' + esc(d.summary) + '</span>' : '') +
-    tags.map(function(t){ return '<span class="doc-tag">' + esc(t) + '</span>'; }).join('');
+    tags.map(function (t) { return '<span class="doc-tag">' + esc(t) + '</span>'; }).join('');
 
   document.getElementById('docDetailMeta').innerHTML = metaHtml;
   document.getElementById('docDetailContent').textContent = d.tutorial || '(no content)';
-  
+
   // Show version history if available
   var historyEl = document.getElementById('docVersionHistory');
   var historyContent = document.getElementById('versionHistoryContent');
   if (d.version_history && d.version_history.length > 0) {
     if (historyEl) historyEl.style.display = 'block';
     if (historyContent) {
-      historyContent.innerHTML = d.version_history.map(function(v) {
+      historyContent.innerHTML = d.version_history.map(function (v) {
         return '<div class="version-history-item">' +
           '<span class="version-number">v' + esc(v.version) + '</span>' +
           '<span class="version-date">' + (v.date ? fmtDate(v.date) : '—') + '</span>' +
           '<span class="version-changes">' + esc(v.changes || '') + '</span>' +
-        '</div>';
+          '</div>';
       }).join('');
     }
   } else {
     if (historyEl) historyEl.style.display = 'none';
   }
-  
+
   openModal('docDetailModal');
 }
 
@@ -569,9 +617,9 @@ function openDocModal(id) {
   document.getElementById('docId').value = id || '';
   document.getElementById('docModalTitle').textContent = id ? 'Edit Dokumentasi' : 'New Dokumentasi';
   document.getElementById('docForm').reset();
-  
+
   if (id) {
-    api('GET', '/dokumentasi/' + id).then(function(res) {
+    api('GET', '/dokumentasi/' + id).then(function (res) {
       var d = res && res.data;
       if (!d) {
         toast('Failed to load document', 'error');
@@ -579,44 +627,44 @@ function openDocModal(id) {
       }
       // Populate form with existing data
       var dbTypeEl = document.getElementById('docDbType');
-      var rankEl    = document.getElementById('docRank');
-      var titleEl   = document.getElementById('docTitle');
+      var rankEl = document.getElementById('docRank');
+      var titleEl = document.getElementById('docTitle');
       var summaryEl = document.getElementById('docSummary');
       var tutorialEl = document.getElementById('docTutorial');
-      var tagsEl     = document.getElementById('docTags');
-      
-      if (dbTypeEl) dbTypeEl.value   = d.dbType    || 'mysql';
-      if (rankEl)    rankEl.value     = d.rank      || 0;
-      if (titleEl)   titleEl.value    = d.title     || '';
-      if (summaryEl) summaryEl.value  = d.summary   || '';
-      if (tutorialEl) tutorialEl.value = d.tutorial  || '';
-      if (tagsEl)     tagsEl.value     = parseTags(d.tags).join(', ');
-    }).catch(function() {
+      var tagsEl = document.getElementById('docTags');
+
+      if (dbTypeEl) dbTypeEl.value = d.dbType || 'mysql';
+      if (rankEl) rankEl.value = d.rank || 0;
+      if (titleEl) titleEl.value = d.title || '';
+      if (summaryEl) summaryEl.value = d.summary || '';
+      if (tutorialEl) tutorialEl.value = d.tutorial || '';
+      if (tagsEl) tagsEl.value = parseTags(d.tags).join(', ');
+    }).catch(function () {
       toast('Failed to load document', 'error');
     });
   }
-  
+
   openModal('docModal');
 }
 
-document.getElementById('docForm').addEventListener('submit', async function(e) {
+document.getElementById('docForm').addEventListener('submit', async function (e) {
   e.preventDefault();
-  var id   = document.getElementById('docId').value;
+  var id = document.getElementById('docId').value;
   var body = {
-    dbType:   document.getElementById('docDbType').value,
-    rank:     parseInt(document.getElementById('docRank').value) || 0,
-    title:    document.getElementById('docTitle').value.trim(),
-    summary:  document.getElementById('docSummary').value.trim(),
+    dbType: document.getElementById('docDbType').value,
+    rank: parseInt(document.getElementById('docRank').value) || 0,
+    title: document.getElementById('docTitle').value.trim(),
+    summary: document.getElementById('docSummary').value.trim(),
     tutorial: document.getElementById('docTutorial').value.trim(),
-    tags:     document.getElementById('docTags').value.trim(),
-    flag:     true,
+    tags: document.getElementById('docTags').value.trim(),
+    flag: true,
   };
   if (!body.title) { toast('Title is required', 'error'); return; }
   var res = id ? await api('PUT', '/dokumentasi/' + id, body) : await api('POST', '/dokumentasi', body);
   if (res && res.status === 'success') {
     toast(id ? 'Doc updated!' : 'Doc created!', 'success');
     closeModal('docModal');
-    loadDocs();
+    loadDocs(); refreshDocBadge();
   } else {
     toast((res && res.message) || 'Save failed', 'error');
   }
@@ -626,7 +674,7 @@ async function deleteDoc(id) {
   if (!confirm('Delete this dokumentasi? This cannot be undone.')) return;
   var res = await api('DELETE', '/dokumentasi/' + id);
   if (res && res.status === 'success') {
-    toast('Deleted.', 'success'); loadDocs();
+    toast('Deleted.', 'success'); loadDocs(); refreshDocBadge();
   } else {
     toast((res && res.message) || 'Delete failed', 'error');
   }
@@ -642,13 +690,13 @@ async function loadUsers() {
 }
 
 function renderUsers(users) {
-  var tbody   = document.getElementById('usersBody');
+  var tbody = document.getElementById('usersBody');
   var _isAdmin = isAdmin();
   if (!users.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No users found.</td></tr>';
     return;
   }
-  tbody.innerHTML = users.map(function(u) {
+  tbody.innerHTML = users.map(function (u) {
     var roleName = (u.role && u.role.name) ? u.role.name : 'user';
     return '<tr>' +
       '<td class="td-mono">' + u.id + '</td>' +
@@ -658,18 +706,18 @@ function renderUsers(users) {
       '<td><span class="status-badge ' + (u.active ? 'status-active' : 'status-inactive') + '">' + (u.active ? 'Active' : 'Inactive') + '</span></td>' +
       '<td class="td-mono">' + (u.lastLogin ? fmtDate(u.lastLogin) : '—') + '</td>' +
       '<td><div class="td-actions">' +
-        (_isAdmin ? '<button class="btn-sm" onclick="openUserModal(' + u.id + ')">Edit</button>' : '') +
-        (_isAdmin ? '<button class="btn-danger" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
+      (_isAdmin ? '<button class="btn-sm" onclick="openUserModal(' + u.id + ')">Edit</button>' : '') +
+      (_isAdmin ? '<button class="btn-danger" onclick="deleteUser(' + u.id + ')">Del</button>' : '') +
       '</div></td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 }
 
 function filterUsers() {
   var q = document.getElementById('usersSearch').value.toLowerCase();
-  var filtered = STATE.usersAll.filter(function(u) {
+  var filtered = STATE.usersAll.filter(function (u) {
     return !q || (u.username && u.username.toLowerCase().indexOf(q) >= 0) ||
-                 (u.email    && u.email.toLowerCase().indexOf(q) >= 0);
+      (u.email && u.email.toLowerCase().indexOf(q) >= 0);
   });
   renderUsers(filtered);
 }
@@ -680,31 +728,31 @@ function openUserModal(id) {
   document.getElementById('userModalTitle').textContent = id ? 'Edit User' : 'New User';
   document.getElementById('userForm').reset();
   if (id) {
-    api('GET', '/users/' + id).then(function(res) {
+    api('GET', '/users/' + id).then(function (res) {
       var u = res && res.data;
       if (!u) return;
-      document.getElementById('userUsername').value = u.username  || '';
-      document.getElementById('userEmail').value    = u.email     || '';
-     document.getElementById('userFullName').value = u.fullName || '';
-     document.getElementById('userActive').value   = (u.active != null) ? u.active : 1;
+      document.getElementById('userUsername').value = u.username || '';
+      document.getElementById('userEmail').value = u.email || '';
+      document.getElementById('userFullName').value = u.fullName || '';
+      document.getElementById('userActive').value = (u.active != null) ? u.active : 1;
     });
   }
   openModal('userModal');
 }
 
-document.getElementById('userForm').addEventListener('submit', async function(e) {
+document.getElementById('userForm').addEventListener('submit', async function (e) {
   e.preventDefault();
-  var id   = document.getElementById('userId').value;
+  var id = document.getElementById('userId').value;
   var body = {
-    username:  document.getElementById('userUsername').value.trim(),
-    email:     document.getElementById('userEmail').value.trim(),
+    username: document.getElementById('userUsername').value.trim(),
+    email: document.getElementById('userEmail').value.trim(),
     full_name: document.getElementById('userFullName').value.trim(),
-    active:    parseInt(document.getElementById('userActive').value),
+    active: parseInt(document.getElementById('userActive').value),
   };
   var pw = document.getElementById('userPassword').value;
   if (pw) body.password = pw;
-  if (!body.username)  { toast('Username is required', 'error'); return; }
-  if (!id && !pw)      { toast('Password is required for new user', 'error'); return; }
+  if (!body.username) { toast('Username is required', 'error'); return; }
+  if (!id && !pw) { toast('Password is required for new user', 'error'); return; }
   var res = id ? await api('PUT', '/users/' + id, body) : await api('POST', '/users', body);
   if (res && res.status === 'success') {
     toast(id ? 'User updated!' : 'User created!', 'success');
@@ -726,11 +774,27 @@ async function deleteUser(id) {
 
 // ─── Logs ─────────────────────────────────────────────────
 async function loadLogs() {
-  document.getElementById('logsBody').innerHTML =
-    '<tr><td colspan="7" class="loading-cell"><div class="loading-dots"><span></span><span></span><span></span></div></td></tr>';
+  var tbody = document.getElementById('logsBody');
+  tbody.innerHTML = '<tr><td colspan="7" class="loading-cell"><div class="loading-dots"><span></span><span></span><span></span></div></td></tr>';
   var action = document.getElementById('logsActionFilter').value;
-  var url    = '/logs?limit=200' + (action ? '&action=' + action : '');
-  var res    = await api('GET', url);
+  var url = '/logs?limit=200' + (action ? '&action=' + action : '');
+  var res = await api('GET', url);
+
+  // Error handling: api() returns null on network error or 401
+  if (!res) {
+    STATE.logsAll = []; // clear stale data
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);padding:2rem">Failed to load logs. Check connection or permissions.</td></tr>';
+    return;
+  }
+
+  // Check for API error response
+  if (res.status === 'error') {
+    STATE.logsAll = [];
+    var errMsg = res.message || 'Failed to load logs.';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);padding:2rem">' + esc(errMsg) + '</td></tr>';
+    return;
+  }
+
   STATE.logsAll = extractRows(res);
   renderLogs(STATE.logsAll);
 }
@@ -741,57 +805,57 @@ function renderLogs(logs) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No logs found.</td></tr>';
     return;
   }
-  tbody.innerHTML = logs.map(function(l) {
+  tbody.innerHTML = logs.map(function (l) {
     var statusClass = l.status === 'success' ? 'status-success' : 'status-failed';
     return '<tr>' +
       '<td class="td-mono">' + fmtDate(l.created_at) + '</td>' +
-      '<td>' + esc(l.username || String(l.user_id||'—')) + '</td>' +
-      '<td><span class="activity-badge badge-' + esc(l.action||'') + '">' + esc(l.action||'—') + '</span></td>' +
-      '<td class="td-mono">' + esc(l.module||'—') + '</td>' +
-      '<td>' + esc(l.description||'—') + '</td>' +
-      '<td class="td-mono">' + esc(l.ip_address||'—') + '</td>' +
-      '<td><span class="status-badge ' + statusClass + '">' + esc(l.status||'—') + '</span></td>' +
-    '</tr>';
+      '<td>' + esc(l.username || String(l.user_id || '—')) + '</td>' +
+      '<td><span class="activity-badge badge-' + esc(l.action || '') + '">' + esc(l.action || '—') + '</span></td>' +
+      '<td class="td-mono">' + esc(l.module || '—') + '</td>' +
+      '<td>' + esc(l.description || '—') + '</td>' +
+      '<td class="td-mono">' + esc(l.ip_address || '—') + '</td>' +
+      '<td><span class="status-badge ' + statusClass + '">' + esc(l.status || '—') + '</span></td>' +
+      '</tr>';
   }).join('');
 }
 
 function filterLogs() {
   var q = document.getElementById('logsSearch').value.toLowerCase();
-  var filtered = STATE.logsAll.filter(function(l) {
-    return !q || (l.username    && l.username.toLowerCase().indexOf(q) >= 0) ||
-                 (l.description && l.description.toLowerCase().indexOf(q) >= 0) ||
-                 (l.module      && l.module.toLowerCase().indexOf(q) >= 0);
+  var filtered = STATE.logsAll.filter(function (l) {
+    return !q || (l.username && l.username.toLowerCase().indexOf(q) >= 0) ||
+      (l.description && l.description.toLowerCase().indexOf(q) >= 0) ||
+      (l.module && l.module.toLowerCase().indexOf(q) >= 0);
   });
   renderLogs(filtered);
 }
 
 // ─── Monitoring ───────────────────────────────────────────
 async function loadMonitoring() {
-  var health  = await checkHealth();
+  var health = await checkHealth();
   var postgresEl = document.getElementById('postgresMonitor');
   if (!postgresEl) return;
-  
+
   try {
     var health = await api('GET', '/health');
     if (!health || health.status !== 'success') throw 0;
-    
+
     var postgresOk = health.services.postgresql === 'connected';
     postgresEl.innerHTML =
-        '<div class="monitor-row"><span class="monitor-label">Status</span>' +
-        '<span class="monitor-val" style="color:' + (postgresOk ? 'var(--green)' : 'var(--red)') + '">' + esc(health.services.postgresql||'unknown') + '</span></div>' +
-        '<div class="monitor-row"><span class="monitor-label">Last Check</span>' +
-        '<span class="monitor-val">' + fmtTime(new Date()) + '</span></div>';
+      '<div class="monitor-row"><span class="monitor-label">Status</span>' +
+      '<span class="monitor-val" style="color:' + (postgresOk ? 'var(--green)' : 'var(--red)') + '">' + esc(health.services.postgresql || 'unknown') + '</span></div>' +
+      '<div class="monitor-row"><span class="monitor-label">Last Check</span>' +
+      '<span class="monitor-val">' + fmtTime(new Date()) + '</span></div>';
   } catch (_) {
     postgresEl.innerHTML = '<p style="color:var(--red);font-size:.8rem;padding:.5rem">Cannot reach server</p>';
   }
 }
 
 // ─── Modal Helpers ────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
-  overlay.addEventListener('click', function(e) {
+document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+  overlay.addEventListener('click', function (e) {
     if (e.target === overlay) overlay.classList.remove('open');
   });
 });
@@ -810,20 +874,20 @@ function parseTags(tags) {
   if (!tags) return [];
   if (Array.isArray(tags)) return tags;
   try { return JSON.parse(tags); } catch (e) { /* fall through */ }
-  return String(tags).split(',').map(function(t){ return t.trim(); }).filter(Boolean);
+  return String(tags).split(',').map(function (t) { return t.trim(); }).filter(Boolean);
 }
 
 function fmtDate(iso) {
   if (!iso) return '—';
   var d = new Date(iso);
-  return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) +
-    ' ' + d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
 function fmtTime(iso) {
   if (!iso) return '—';
   var d = new Date(iso);
-  return d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 // ─── AI Update Functions ────────────────────────────────
@@ -831,12 +895,12 @@ let currentDetailDocId = null;
 
 async function aiUpdateAll() {
   if (!confirm('Trigger AI update for ALL database types? This may take several minutes.')) return;
-  
+
   var btn = document.getElementById('btnAiUpdateAll');
   btn.disabled = true;
   btn.textContent = '🔄 Updating...';
   toast('AI update started. This may take a few minutes...', 'info');
-  
+
   try {
     var res = await api('POST', '/dokumentasi/ai-update/all');
     if (res && res.status === 'success') {
@@ -855,11 +919,11 @@ async function aiUpdateAll() {
 
 async function aiUpdateSingle() {
   if (!currentDetailDocId) return;
-  
+
   var btn = document.getElementById('btnAiUpdateSingle');
   btn.disabled = true;
   btn.textContent = '🔄 Updating...';
-  
+
   try {
     var res = await api('POST', '/dokumentasi/ai-update/' + currentDetailDocId);
     if (res && res.status === 'success') {
@@ -878,18 +942,18 @@ async function aiUpdateSingle() {
 }
 
 // ─── Expose globals for inline onclick ────────────────────
-window.navigate      = navigate;
-window.openDocModal  = openDocModal;
+window.navigate = navigate;
+window.openDocModal = openDocModal;
 window.openDocDetail = openDocDetail;
-window.deleteDoc     = deleteDoc;
-window.docsGoPage    = docsGoPage;
+window.deleteDoc = deleteDoc;
+window.docsGoPage = docsGoPage;
 window.openUserModal = openUserModal;
-window.deleteUser    = deleteUser;
-window.filterUsers   = filterUsers;
-window.filterLogs    = filterLogs;
-window.loadLogs      = loadLogs;
-window.closeModal    = closeModal;
-window.aiUpdateAll   = aiUpdateAll;
+window.deleteUser = deleteUser;
+window.filterUsers = filterUsers;
+window.filterLogs = filterLogs;
+window.loadLogs = loadLogs;
+window.closeModal = closeModal;
+window.aiUpdateAll = aiUpdateAll;
 window.aiUpdateSingle = aiUpdateSingle;
 
 // ─── Boot ─────────────────────────────────────────────────
@@ -899,8 +963,8 @@ window.aiUpdateSingle = aiUpdateSingle;
   if (STATE.token && STATE.user) {
     // Show a minimal loading state — neither login nor app yet
     document.getElementById('sidebar').style.display = 'none';
-    document.getElementById('topbar').style.display  = 'none';
-    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('topbar').style.display = 'none';
+    document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
     // Show loading indicator
     var loadingEl = document.getElementById('appLoading');
     if (loadingEl) loadingEl.style.display = 'flex';
@@ -908,8 +972,8 @@ window.aiUpdateSingle = aiUpdateSingle;
     fetch('/api/auth/me', {
       headers: { 'Authorization': 'Bearer ' + STATE.token },
     })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
         if (data.status === 'success') {
           // Merge fresh user data (role may be nested)
           var u = data.data || STATE.user;
@@ -924,7 +988,7 @@ window.aiUpdateSingle = aiUpdateSingle;
           showLogin();
         }
       })
-      .catch(function() { showLogin(); });
+      .catch(function () { showLogin(); });
   } else {
     showLogin();
   }
