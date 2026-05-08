@@ -10,7 +10,7 @@ const RunbookAI = sequelize.define(
       primaryKey: true,
     },
     db_type: {
-      type: DataTypes.ENUM('mysql', 'redis', 'postgresql', 'mongodb', 'oracle', 'db2', 'edb', 'sqlserver', 'other'),
+      type: DataTypes.ENUM('mysql', 'redis', 'postgresql', 'mongodb', 'oracle', 'db2', 'edb', 'sqlserver', 'other', 'banking'),
       allowNull: false,
       comment: 'Type of database (sqlserver for MS SQL/MSSQL)',
     },
@@ -83,3 +83,4 @@ const RunbookAI = sequelize.define(
 );
 
 module.exports = RunbookAI;
+

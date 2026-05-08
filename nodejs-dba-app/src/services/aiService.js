@@ -12,6 +12,7 @@ const DB_TYPES = [
   { type: 'sqlserver', name: 'MS SQL Server', currentVersion: '2022' },
   { type: 'edb', name: 'EnterpriseDB (EDB)', currentVersion: '16.2' },
   { type: 'db2', name: 'IBM DB2', currentVersion: '11.5' },
+  { type: 'banking', name: 'Banking Systems', currentVersion: '2026' },
 ];
 
 const AI_MODEL = 'opencode/big-pickle';
@@ -20,11 +21,11 @@ const getLatestVersion = async (dbType) => {
   try {
     const searchQuery = `${dbType} latest version 2026`;
     const results = await websearch({ query: searchQuery, count: 3 });
-    
+
     if (results && results.length > 0) {
       const versionRegex = /(\d+\.\d+(\.\d+)?|(\d{4}))/g;
-      const matches = results[0].title?.match(versionRegex) || 
-                     results[0].snippet?.match(versionRegex);
+      const matches = results[0].title?.match(versionRegex) ||
+        results[0].snippet?.match(versionRegex);
       if (matches && matches.length > 0) {
         return matches[0];
       }
@@ -40,10 +41,10 @@ const generateTutorial = async (dbType, dbName, version) => {
   try {
     const searchQuery = `${dbName} ${version} tutorial administration management guide`;
     const results = await websearch({ query: searchQuery, count: 5, type: 'deep' });
-    
+
     let content = `# ${dbName} ${version} - Database Management Tutorial\n\n`;
     content += `> Last updated: ${new Date().toISOString().split('T')[0]} | AI Generated\n\n`;
-    
+
     if (results && results.length > 0) {
       content += `## Overview\n\n`;
       results.slice(0, 3).forEach((r, i) => {
@@ -52,7 +53,7 @@ const generateTutorial = async (dbType, dbName, version) => {
         if (r.url) content += `Source: ${r.url}\n\n`;
       });
     }
-    
+
     content += `## Installation & Setup\n\n`;
     content += `Please refer to official documentation for ${dbName} installation.\n\n`;
     content += `## Common Operations\n\n`;
@@ -60,7 +61,7 @@ const generateTutorial = async (dbType, dbName, version) => {
     content += `- Performance Tuning\n`;
     content += `- User Management\n`;
     content += `- Monitoring\n\n`;
-    
+
     return content;
   } catch (err) {
     logger.error(`Error generating tutorial for ${dbType}:`, err.message);
@@ -70,33 +71,33 @@ const generateTutorial = async (dbType, dbName, version) => {
 
 const updateAllDatabases = async (req = null) => {
   const results = { updated: 0, skipped: 0, errors: [] };
-  
+
   for (const db of DB_TYPES) {
     try {
       const latestVersion = await getLatestVersion(db.type);
       const versionToUse = latestVersion || db.currentVersion;
-      
-      let doc = await RunbookAI.findOne({ 
+
+      let doc = await RunbookAI.findOne({
         where: { db_type: db.type, flag: 1 },
         order: [['createdAt', 'DESC']]
       });
-      
+
       if (doc) {
         if (doc.auto_update === 0) {
           results.skipped++;
           continue;
         }
-        
+
         if (doc.version !== versionToUse) {
           const tutorial = await generateTutorial(db.type, db.name, versionToUse);
-          
+
           const versionHistory = doc.version_history || [];
           versionHistory.push({
             version: versionToUse,
             date: new Date().toISOString(),
             changes: `Updated to version ${versionToUse} by AI`
           });
-          
+
           await doc.update({
             version: versionToUse,
             tutorial,
@@ -106,11 +107,11 @@ const updateAllDatabases = async (req = null) => {
             ai_source: AI_MODEL,
             last_ai_update: new Date(),
           });
-          
+
           results.updated++;
-          
+
           if (req && req.user) {
-            await logActivity(req, 'UPDATE', 'dokumentasi', 
+            await logActivity(req, 'UPDATE', 'dokumentasi',
               `AI auto-updated: ${db.name} to v${versionToUse}`);
           }
         } else {
@@ -118,7 +119,7 @@ const updateAllDatabases = async (req = null) => {
         }
       } else {
         const tutorial = await generateTutorial(db.type, db.name, versionToUse);
-        
+
         await RunbookAI.create({
           db_type: db.type,
           title: `${db.name} ${versionToUse} Management Tutorial`,
@@ -138,34 +139,34 @@ const updateAllDatabases = async (req = null) => {
           tags: [db.type, 'tutorial', 'ai-generated'],
           flag: 1,
         });
-        
+
         results.updated++;
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
     } catch (err) {
       logger.error(`Error updating ${db.type}:`, err.message);
       results.errors.push({ db: db.type, error: err.message });
     }
   }
-  
+
   return results;
 };
 
 const updateSingleDatabase = async (dbType, req = null) => {
   const dbInfo = DB_TYPES.find(d => d.type === dbType);
   if (!dbInfo) throw new Error(`Unknown database type: ${dbType}`);
-  
+
   const latestVersion = await getLatestVersion(dbType);
   const versionToUse = latestVersion || dbInfo.currentVersion;
   const tutorial = await generateTutorial(dbType, dbInfo.name, versionToUse);
-  
-  let doc = await RunbookAI.findOne({ 
+
+  let doc = await RunbookAI.findOne({
     where: { db_type: dbType, flag: 1 },
     order: [['createdAt', 'DESC']]
   });
-  
+
   if (doc) {
     const versionHistory = doc.version_history || [];
     versionHistory.push({
@@ -173,7 +174,7 @@ const updateSingleDatabase = async (dbType, req = null) => {
       date: new Date().toISOString(),
       changes: `Manual AI update to version ${versionToUse}`
     });
-    
+
     await doc.update({
       version: versionToUse,
       tutorial,
@@ -202,14 +203,14 @@ const updateSingleDatabase = async (dbType, req = null) => {
       flag: 1,
     });
   }
-  
+
   return doc;
 };
 
 const aiGenerateNewDoc = async (dbType, title, req = null) => {
   const latestVersion = await getLatestVersion(dbType) || 'Latest';
   const tutorial = await generateTutorial(dbType, title, latestVersion);
-  
+
   const doc = await RunbookAI.create({
     db_type: dbType,
     title: title,
@@ -229,7 +230,7 @@ const aiGenerateNewDoc = async (dbType, title, req = null) => {
     tags: [dbType, 'tutorial', 'ai-generated'],
     flag: 1,
   });
-  
+
   return doc;
 };
 

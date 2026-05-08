@@ -22,6 +22,7 @@
     "express": "^4.19.2",
     "helmet": "^7.1.0",
     "ioredis": "^5.10.1",
+    "json": "^11.0.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0"
   },

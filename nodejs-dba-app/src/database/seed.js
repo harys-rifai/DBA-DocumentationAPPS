@@ -89,6 +89,18 @@ const seed = async () => {
       },
     });
 
+    await RunbookAI.findOrCreate({
+      where: { title: 'Banking Systems Security Best Practices' },
+      defaults: {
+        db_type: 'banking',
+        tutorial: `# Banking Systems Security Best Practices\n\n## Overview\nThis document outlines security best practices for banking systems and financial applications.\n\n## Authentication & Authorization\n- Implement multi-factor authentication (MFA) for all user access\n- Use role-based access control (RBAC) with least privilege principles\n- Regularly review and update access permissions\n- Implement session timeout and secure logout mechanisms\n\n## Data Encryption\n- Encrypt sensitive data at rest using AES-256 or stronger\n- Use TLS 1.2+ for all data in transit\n- Implement proper key management procedures\n- Regularly rotate encryption keys\n\n## Audit & Monitoring\n- Implement comprehensive logging of all system activities\n- Monitor for suspicious activities and anomalies\n- Regular security audits and penetration testing\n- Real-time alerting for security events\n\n## Data Backup & Recovery\n- Regular automated backups of critical data\n- Test backup restoration procedures regularly\n- Implement geographic redundancy for disaster recovery\n- Ensure backup data is equally protected as primary data\n\n## Compliance & Regulations\n- Stay updated with PCI DSS, GDPR, SOX, and other relevant regulations\n- Regular compliance assessments and documentation\n- Implement data retention and disposal policies\n\n## Network Security\n- Use firewalls and intrusion detection/prevention systems\n- Implement network segmentation for sensitive systems\n- Regular vulnerability assessments and patch management\n- Secure API gateways for third-party integrations\n\n## Application Security\n- Conduct regular code reviews and security testing\n- Implement input validation and output encoding\n- Use secure coding practices to prevent common vulnerabilities\n- Regular dependency scanning and updates\n\n## Incident Response\n- Develop and maintain incident response plan\n- Regular incident response training and drills\n- Clear communication procedures during security incidents\n- Post-incident analysis and improvement process`,
+        summary: 'Comprehensive security best practices for banking systems and financial applications.',
+        rank: 1,
+        tags: ['banking', 'security', 'compliance', 'best-practices'],
+        flag: 1,
+      },
+    });
+
     logger.info('RunbookAI seeded.');
     logger.info('Seeding completed successfully.');
     process.exit(0);

@@ -38,12 +38,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/health', async (req, res) => {
   let dbStatus = 'disconnected';
   let redisStatus = 'disconnected';
-  
+
   try {
     await prisma.$queryRaw`SELECT 1`;
     dbStatus = 'connected';
-  } catch (_) {}
-  
+  } catch (_) { }
+
   try {
     // Simple Redis ping using Bun's built-in fetch or assume connected if no error
     const redis = await import('ioredis').catch(() => null);
@@ -57,7 +57,7 @@ app.get('/health', async (req, res) => {
       redisStatus = 'connected';
       client.disconnect();
     }
-  } catch (_) {}
+  } catch (_) { }
 
   res.json({
     status: 'ok',
@@ -82,7 +82,7 @@ app.get('/', (req, res) => {
 // Auth routes
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
-  
+
   if (!username || !password) {
     return res.status(400).json({ status: 'error', message: 'Username and password are required' });
   }
@@ -167,24 +167,24 @@ app.post('/api/users', async (req, res) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ status: 'error', message: 'No token provided' });
   }
-  
+
   try {
     const jwt = await import('jsonwebtoken');
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
   } catch (_) {
     return res.status(401).json({ status: 'error', message: 'Invalid token' });
   }
-  
+
   try {
     const { username, password, email, fullName, roleId } = req.body;
-    
+
     if (!username || !password) {
       return res.status(400).json({ status: 'error', message: 'Username and password are required' });
     }
-    
+
     const bcrypt = await import('bcrypt');
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const user = await prisma.user.create({
       data: {
         username,
@@ -197,7 +197,7 @@ app.post('/api/users', async (req, res) => {
       },
       include: { role: true }
     });
-    
+
     return res.status(201).json({ status: 'success', message: 'User created', data: user });
   } catch (err) {
     if (err.code === 'P2002') {
@@ -543,7 +543,7 @@ SELECT * FROM pg_stat_activity;
 \`\`\`
 `
   },
-    {
+  {
     dbType: 'db2',
     name: 'IBM DB2',
     version: '11.5',
@@ -624,13 +624,13 @@ CREATE TABLESPACE app_data DATAFILE 'app_data01.dbf' SIZE 100M AUTOEXTEND ON;
 app.post('/api/dokumentasi/ai-update/all', async (req, res) => {
   try {
     const results = { updated: 0, created: 0, errors: [] };
-    
+
     for (const handbook of DB_HANDBOOKS) {
       try {
         const existing = await prisma.dokumentasiDB.findFirst({
           where: { dbType: handbook.dbType, flag: true }
         });
-        
+
         if (existing) {
           await prisma.dokumentasiDB.update({
             where: { id: existing.id },
@@ -667,7 +667,7 @@ app.post('/api/dokumentasi/ai-update/all', async (req, res) => {
         results.errors.push({ dbType: handbook.dbType, error: err.message });
       }
     }
-    
+
     return res.json({
       status: 'success',
       message: `AI update completed: ${results.updated} updated, ${results.created} created`,
@@ -682,11 +682,11 @@ app.post('/api/dokumentasi/ai-update/all', async (req, res) => {
 app.get('/api/dokumentasi/grep', async (req, res) => {
   const query = req.query.q || '';
   const dbType = req.query.db_type;
-  
+
   if (!query) {
     return res.status(400).json({ status: 'error', message: 'Query parameter "q" is required' });
   }
-  
+
   const where = {
     flag: true,
     OR: [
@@ -695,9 +695,9 @@ app.get('/api/dokumentasi/grep', async (req, res) => {
       { tutorial: { contains: query, mode: 'insensitive' } },
     ]
   };
-  
+
   if (dbType) where.dbType = dbType;
-  
+
   const results = await prisma.dokumentasiDB.findMany({
     where,
     orderBy: { rank: 'asc' },
@@ -710,7 +710,7 @@ app.get('/api/dokumentasi/grep', async (req, res) => {
       tutorial: true,
     }
   });
-  
+
   return res.json({
     status: 'success',
     data: {
@@ -724,16 +724,16 @@ app.get('/api/dokumentasi/grep', async (req, res) => {
 // Troubleshoot with AI Knowledge Base
 app.post('/api/troubleshoot', async (req, res) => {
   const { issue, dbType } = req.body;
-  
+
   if (!issue) {
     return res.status(400).json({ status: 'error', message: 'Issue description is required' });
   }
-  
+
   try {
     // Get relevant handbook data as knowledge base
     const where = { flag: true };
     if (dbType) where.dbType = dbType;
-    
+
     const handbooks = await prisma.dokumentasiDB.findMany({
       where,
       select: {
@@ -743,14 +743,14 @@ app.post('/api/troubleshoot', async (req, res) => {
         version: true,
       }
     });
-    
+
     // Build knowledge base context
     const knowledgeBase = handbooks.map(h => ({
       type: h.dbType,
       title: h.title,
       content: h.tutorial?.substring(0, 2000) || '', // Limit content length
     }));
-    
+
     // Simulate AI troubleshooting (in production, this would call an actual AI API)
     const troubleshooting = {
       issue,
@@ -765,7 +765,7 @@ app.post('/api/troubleshoot', async (req, res) => {
       relevantDocs: knowledgeBase.slice(0, 3),
       timestamp: new Date().toISOString(),
     };
-    
+
     return res.json({
       status: 'success',
       message: 'Troubleshooting analysis complete',
@@ -781,15 +781,15 @@ app.post('/api/dokumentasi/ai-update/:dbType', async (req, res) => {
   try {
     const { dbType } = req.params;
     const handbook = DB_HANDBOOKS.find(h => h.dbType === dbType);
-    
+
     if (!handbook) {
       return res.status(404).json({ status: 'error', message: 'Database type not found' });
     }
-    
+
     const existing = await prisma.dokumentasiDB.findFirst({
       where: { dbType, flag: true }
     });
-    
+
     if (existing) {
       await prisma.dokumentasiDB.update({
         where: { id: existing.id },
@@ -819,7 +819,7 @@ app.post('/api/dokumentasi/ai-update/:dbType', async (req, res) => {
         }
       });
     }
-    
+
     return res.json({ status: 'success', message: `AI update completed for ${handbook.name}` });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
@@ -832,11 +832,11 @@ app.get('/api/dokumentasi/:id', async (req, res) => {
     const doc = await prisma.dokumentasiDB.findFirst({
       where: { id: parseInt(req.params.id), flag: true }
     });
-    
+
     if (!doc) {
       return res.status(404).json({ status: 'error', message: 'Documentation not found' });
     }
-    
+
     return res.json({ status: 'success', data: doc });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
@@ -849,26 +849,26 @@ app.put('/api/dokumentasi/:id', async (req, res) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ status: 'error', message: 'No token provided' });
   }
-  
+
   try {
     const jwt = await import('jsonwebtoken');
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
   } catch (_) {
     return res.status(401).json({ status: 'error', message: 'Invalid token' });
   }
-  
+
   try {
     const { dbType, title, tutorial, summary, rank, tags, version, autoUpdate } = req.body;
     const id = parseInt(req.params.id);
-    
+
     const existing = await prisma.dokumentasiDB.findFirst({
       where: { id, flag: true }
     });
-    
+
     if (!existing) {
       return res.status(404).json({ status: 'error', message: 'Documentation not found' });
     }
-    
+
     const doc = await prisma.dokumentasiDB.update({
       where: { id },
       data: {
@@ -882,7 +882,7 @@ app.put('/api/dokumentasi/:id', async (req, res) => {
         autoUpdate: autoUpdate !== undefined ? autoUpdate : existing.autoUpdate,
       }
     });
-    
+
     return res.json({ status: 'success', message: 'Documentation updated', data: doc });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
@@ -895,30 +895,30 @@ app.delete('/api/dokumentasi/:id', async (req, res) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ status: 'error', message: 'No token provided' });
   }
-  
+
   try {
     const jwt = await import('jsonwebtoken');
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
   } catch (_) {
     return res.status(401).json({ status: 'error', message: 'Invalid token' });
   }
-  
+
   try {
     const id = parseInt(req.params.id);
-    
+
     const existing = await prisma.dokumentasiDB.findFirst({
       where: { id, flag: true }
     });
-    
+
     if (!existing) {
       return res.status(404).json({ status: 'error', message: 'Documentation not found' });
     }
-    
+
     await prisma.dokumentasiDB.update({
       where: { id },
       data: { flag: false }
     });
-    
+
     return res.json({ status: 'success', message: 'Documentation deleted' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
@@ -932,11 +932,11 @@ app.get('/api/users/:id', async (req, res) => {
       where: { id: parseInt(req.params.id), flag: true },
       include: { role: true }
     });
-    
+
     if (!user) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
-    
+
     return res.json({ status: 'success', data: user });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
@@ -949,26 +949,26 @@ app.put('/api/users/:id', async (req, res) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ status: 'error', message: 'No token provided' });
   }
-  
+
   try {
     const jwt = await import('jsonwebtoken');
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
   } catch (_) {
     return res.status(401).json({ status: 'error', message: 'Invalid token' });
   }
-  
+
   try {
     const { username, email, fullName, active, roleId } = req.body;
     const id = parseInt(req.params.id);
-    
+
     const existing = await prisma.user.findFirst({
       where: { id, flag: true }
     });
-    
+
     if (!existing) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
-    
+
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -980,7 +980,7 @@ app.put('/api/users/:id', async (req, res) => {
       },
       include: { role: true }
     });
-    
+
     return res.json({ status: 'success', message: 'User updated', data: user });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
@@ -993,33 +993,119 @@ app.delete('/api/users/:id', async (req, res) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ status: 'error', message: 'No token provided' });
   }
-  
+
   try {
     const jwt = await import('jsonwebtoken');
     jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
   } catch (_) {
     return res.status(401).json({ status: 'error', message: 'Invalid token' });
   }
-  
+
   try {
     const id = parseInt(req.params.id);
-    
+
     const existing = await prisma.user.findFirst({
       where: { id, flag: true }
     });
-    
+
     if (!existing) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
-    
+
     await prisma.user.update({
       where: { id },
       data: { flag: false }
     });
-    
+
     return res.json({ status: 'success', message: 'User deleted' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// Get Logs (protected - admin/dba only)
+app.get('/api/logs', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+
+  let decoded;
+  try {
+    const jwt = await import('jsonwebtoken');
+    decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ status: 'error', message: 'Token expired' });
+    }
+    return res.status(401).json({ status: 'error', message: 'Invalid or expired token' });
+  }
+
+  // Verify user has admin or dba role
+  try {
+    const userWithRole = await prisma.user.findFirst({
+      where: { id: decoded.id, flag: true },
+      include: { role: true },
+    });
+
+    if (!userWithRole || !userWithRole.role) {
+      return res.status(403).json({ status: 'error', message: 'No role assigned' });
+    }
+
+    if (!['admin', 'dba'].includes(userWithRole.role.name)) {
+      return res.status(403).json({ status: 'error', message: 'Insufficient permissions' });
+    }
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: 'Authorization failed' });
+  }
+
+  // Fetch logs with filters
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const action = req.query.action || null;
+    const module = req.query.module || null;
+    const since = req.query.since || null;
+
+    const where = { flag: true };
+    if (action) where.action = action;
+    if (module) where.module = module;
+    if (since) {
+      const sinceNum = parseInt(since, 10);
+      if (!isNaN(sinceNum)) {
+        const sinceDate = new Date(sinceNum);
+        where.createdAt = { gte: sinceDate };
+      }
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.logActivity.findMany({
+        where,
+        include: {
+          user: {
+            select: { id: true, username: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.logActivity.count({ where }),
+    ]);
+
+    const result = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: logs,
+    };
+
+    return res.json({ status: 'success', data: result });
+  } catch (err) {
+    console.error('getAll logs error:', err);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch logs' });
   }
 });
 
